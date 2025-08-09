@@ -1,5 +1,3 @@
-Here’s a clean `README.md` you can drop into your repo for **Transactly**:
-
 ````markdown
 # Transactly
 
@@ -11,6 +9,14 @@ It lets you:
 - Quote estimated gas fees
 - Execute a payment transaction directly from the browser
 - View payment status live
+
+---
+
+## 📸 Screenshot
+
+![Transactly Invoice UI](docs/screenshot.png)
+
+> Example invoice page showing payment address, QR code, and one-click quote & pay actions.
 
 ---
 
@@ -47,7 +53,7 @@ Create a `.env` file:
 
 ```env
 PUBLIC_BASE_URL=http://localhost:3000
-SEP0LIA_RPC_URL=https://sepolia.infura.io/v3/<your_key>
+SEPOLIA_RPC_URL=https://sepolia.infura.io/v3/<your_key>
 NEXT_PUBLIC_contractId=<your_contract_id>
 ```
 
@@ -88,3 +94,4 @@ The server will start on `http://localhost:3000`.
 ## 📜 License
 
 MIT
+
