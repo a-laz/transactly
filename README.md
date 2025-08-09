@@ -1,155 +1,90 @@
-# Shade Agent Template
+Here’s a clean `README.md` you can drop into your repo for **Transactly**:
 
-> [!WARNING]  
-> This technology has not yet undergone a formal audit. Please conduct your own due diligence and exercise caution before integrating or relying on it in production environments.
+````markdown
+# Transactly
 
-This is a simple template for the Shade Agent Framework with all the code and tools required for deploying a Shade Agent on NEAR and Phala Cloud.
+Transactly is a lightweight payment request and execution demo built on top of Shade Agents.  
+It lets you:
 
-This template is a simple verifiable ETH Price Oracle that pushes prices to an Ethereum contract.
-
-For full instructions on this repository please refer to our [docs](https://docs.near.org/ai/shade-agents/sandbox/sandbox-deploying).
-
-## Prerequisites
-
-- First, `clone` this template.
-
-```bash
-git clone https://github.com/NearDeFi/shade-agent-sandbox-template shade-agent
-cd shade-agent
-```
-
-- Install NEAR and Shade Agent tooling:
-
-```bash
-# Install the NEAR CLI
-curl --proto '=https' --tlsv1.2 -LsSf https://github.com/near/near-cli-rs/releases/latest/download/near-cli-rs-installer.sh | sh
-
-# Install the Shade Agent CLI
-npm i -g @neardefi/shade-agent-cli
-```
-
-- Create a `NEAR testnet account` and record the account name and `seed phrase`:
-
-```bash
-near account create-account sponsor-by-faucet-service <example-name.testnet> autogenerate-new-keypair print-to-terminal network-config testnet create
-```
-
-replacing <example-name.testnet> with a unique name.
-
-- Set up docker if you have not already:
-
-Install Docker for [Mac](https://docs.docker.com/desktop/setup/install/mac-install/) or [Linux](https://docs.docker.com/desktop/setup/install/linux/) and set up an account.
-
-Log in to docker, `docker login` for Mac or `sudo docker login` for Linux.
-
-- Set up a free Phala Cloud account at https://cloud.phala.network/register then get an API key from https://cloud.phala.network/dashboard/tokens.
-
-What is a Phala Cloud?
-
-Phala Cloud is a service that offers secure and private hosting in a TEE using [Dstack](https://docs.phala.network/overview/phala-network/dstack). Phala Cloud makes it easy to run a TEE, that's why we use it in our template!
+- Create ETH invoices (Sepolia testnet by default)
+- Generate a payment link with a QR code
+- Quote estimated gas fees
+- Execute a payment transaction directly from the browser
+- View payment status live
 
 ---
 
-## Set up
+## 🚀 Features
+- **Invoice Creation** — Simple API to create payment requests.
+- **Live Status Updates** — Automatic invoice status refresh.
+- **QR Code Payment Links** — Quickly scan to open in Etherscan.
+- **Quote & Pay** — One-click estimate or send transaction.
+- **History Tracking** — Keep a record of all invoices in memory.
 
-- Rename the `.env.development.local.example` file name to `.env.development.local` and configure your environment variables.
+---
 
-- Start up Docker:
+## 🛠️ Tech Stack
+- **Backend:** Node.js (Hono framework), Shade Agent SDK, Ethers.js v6
+- **Frontend:** Minimal HTML/JS UI served from the backend
+- **Blockchain:** Sepolia ETH (with optional Base Sepolia support)
+- **QR Codes:** `qrcode` JS library
 
-For Mac
+---
 
-Simply open the Docker Desktop application or run:
-
-```bash
-open -a Docker
-```
-
-For Linux
-
-```bash
-sudo systemctl start docker
-```
-
-- Install dependencies 
+## 📦 Installation
 
 ```bash
-npm i
+git clone https://github.com/a-laz/transactly.git
+cd transactly
+npm install
+````
+
+---
+
+## ⚙️ Environment Variables
+
+Create a `.env` file:
+
+```env
+PUBLIC_BASE_URL=http://localhost:3000
+SEP0LIA_RPC_URL=https://sepolia.infura.io/v3/<your_key>
+NEXT_PUBLIC_contractId=<your_contract_id>
 ```
 
 ---
 
-## Local development
-
-- Make sure the `NEXT_PUBLIC_contractId` prefix is set to `ac.proxy.` followed by your NEAR accountId.
-
-- In one terminal, run the Shade Agent CLI:
-
-```bash
-shade-agent-cli
-```
-
-The CLI on Linux may prompt you to enter your `sudo password`.
-
-- In another terminal, start your app:
+## ▶️ Running Locally
 
 ```bash
 npm run dev
 ```
 
-Your app will start on https://localhost:3000
+The server will start on `http://localhost:3000`.
 
 ---
 
-## TEE Deployment
+## 🔗 API Endpoints
 
-- Change the `NEXT_PUBLIC_contractId` prefix to `ac.sandbox.` followed by your NEAR accountId.
+| Method | Endpoint           | Description                 |
+| ------ | ------------------ | --------------------------- |
+| POST   | `/invoice`         | Create a new invoice        |
+| GET    | `/invoice/:id`     | Get invoice details         |
+| GET    | `/pay/:id`         | View invoice payment page   |
+| POST   | `/pay/:id/quote`   | Get estimated gas fees      |
+| POST   | `/pay/:id/execute` | Execute payment transaction |
 
-- Run the Shade Agent CLI
+---
 
-```bash
-shade-agent-cli
-```
+## 🧪 Demo Workflow
 
-The CLI on Linux may prompt you to enter your `sudo password`.
+1. **Create an invoice** via API or form.
+2. **Open payment page** (includes QR code).
+3. **Click "Quote"** to see estimated gas.
+4. **Click "Pay Now"** to send transaction.
+5. **View live status updates** on the invoice page.
 
-The last URL the CLI outputs is where your app is hosted.
+---
 
-If your application is not working head over to your App on Phala Dashboard and review the logs.
+## 📜 License
 
-## Interacting with the Agent
-
-You can interact with your agent via the APIs directly or via a lightweight frontend contained in this repo.
-
-### Direct
-
-For Phala deployments swap localhost:3000 for your deployment URL
-
-Get the Agent account and it's balance:
-
-```
-https://localhost:3000/api/agent-account
-```
-
-Get the derived Ethereum Sepolia account and it's balance (you will need to fund this):
-
-```
-https://localhost:3000/api/eth-account
-```
-
-Send a transaction through the Agent to update the price of Eth:
-
-```
-https://localhost:3000/api/transaction
-```
-
-### Frontend
-
-To run the frontend run:
-
-```bash
-cd frontend
-npm i
-npm run dev
-```
-
-To run the frontend with your Phala deployment change the `API_URL` to Phala URL in your [config.js](./frontend/src/config.js) file.
+MIT
