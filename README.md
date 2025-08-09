@@ -43,6 +43,7 @@ It lets you:
 git clone https://github.com/a-laz/transactly.git
 cd transactly
 npm install
+```
 ````
 
 ---
