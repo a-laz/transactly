@@ -14,7 +14,7 @@ import agentAccount from "./routes/agentAccount";
 import transaction from "./routes/transaction";
 
 const app = new Hono();
-
+app.route("/", transaction);
 // Configure CORS to restrict access to the server
 app.use(cors());
 
