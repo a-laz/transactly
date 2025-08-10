@@ -452,7 +452,7 @@ app.get('/', (c) => {
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Cross-Chain Invoice Inbox</title>
+    <title>Transactly</title>
     <div style="margin-bottom:20px;">
       <a href="/tabs" style="text-decoration:none">
         <button class="secondary">Start a Tab</button>
@@ -475,7 +475,7 @@ app.get('/', (c) => {
     </style>
   </head>
   <body>
-    <h1>Cross-Chain Invoice Inbox</h1>
+    <h1>Transactly</h1>
 
     <div class="card">
       <h3>Create Invoice</h3>
