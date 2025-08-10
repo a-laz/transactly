@@ -1,98 +1,98 @@
-````markdown
-# Transactly
+```markdown
+## Tabs + Cross-Chain Invoice Inbox
 
-Transactly is a lightweight payment request and execution demo built on top of Shade Agents.  
-It lets you:
+This app lets you run a real-time group tab with automatic wallet purchase tracking and net settlement via invoices. Built on Shade Agents.
 
-- Create ETH invoices (Sepolia testnet by default)
-- Generate a payment link with a QR code
-- Quote estimated gas fees
-- Execute a payment transaction directly from the browser
-- View payment status live
+### What’s included
+- Tabs with QR join page
+- MetaMask connect (create and join flows)
+- Automatic Sepolia ETH purchase tracking (no pasting tx hashes)
+- Equal-split ledger and live net balances
+- Net settlement with pay links on chosen chain (Sepolia or NEAR)
+- Classic invoice demo (create, quote, pay via agent)
 
----
-
-## 📸 Screenshot
-
-![Screenshot](https://github.com/a-laz/transactly/blob/master/docs/screenshot.png)
-
-> Example invoice page showing payment address, QR code, and one-click quote & pay actions.
+### Tech
+- Backend: Node.js (Hono), Shade Agent SDK, Ethers v6
+- Chains: Sepolia ETH (auto-tracking), NEAR (settlement target supported)
+- Frontend: Minimal server-rendered HTML
 
 ---
 
-## 🚀 Features
-- **Invoice Creation** — Simple API to create payment requests.
-- **Live Status Updates** — Automatic invoice status refresh.
-- **QR Code Payment Links** — Quickly scan to open in Etherscan.
-- **Quote & Pay** — One-click estimate or send transaction.
-- **History Tracking** — Keep a record of all invoices in memory.
+## Setup
 
----
-
-## 🛠️ Tech Stack
-- **Backend:** Node.js (Hono framework), Shade Agent SDK, Ethers.js v6
-- **Frontend:** Minimal HTML/JS UI served from the backend
-- **Blockchain:** Sepolia ETH (with optional Base Sepolia support)
-- **QR Codes:** `qrcode` JS library
-
----
-
-## 📦 Installation
-
+Install dependencies:
 ```bash
-git clone https://github.com/a-laz/transactly.git
-cd transactly
 npm install
 ```
-````
 
----
-
-## ⚙️ Environment Variables
-
-Create a `.env` file:
-
+Create `.env.development.local` in the project root:
 ```env
-PUBLIC_BASE_URL=http://localhost:3000
-SEPOLIA_RPC_URL=https://sepolia.infura.io/v3/<your_key>
+# Public URL for links/QRs (set to your ngrok URL)
+PUBLIC_BASE_URL=https://<your-ngrok-subdomain>.ngrok-free.app
+
+# Shade Agent contract id (required for agent-signed tx / demo purchase)
 NEXT_PUBLIC_contractId=<your_contract_id>
+
+# Optional: your RPC
+SEPOLIA_RPC_URL=https://sepolia.infura.io/v3/<your_key>
+# or ETH_RPC_URL=https://sepolia.drpc.org
+
+# Optional: auto-watcher polling (ms)
+AUTO_WATCH_INTERVAL_MS=5000
 ```
 
 ---
 
-## ▶️ Running Locally
+## Run (3 terminals)
 
+1) Shade client CLI (agent signer)
+```bash
+# Example (adapt per your setup)
+# Ensure this process can receive signature requests
+shade-client-cli start --contract-id "$NEXT_PUBLIC_contractId"
+```
+
+2) App server
 ```bash
 npm run dev
 ```
 
-The server will start on `http://localhost:3000`.
+3) Public tunnel (ngrok)
+```bash
+ngrok http 3000
+# Copy the https URL and set PUBLIC_BASE_URL to it (in .env and restart dev), e.g.
+# PUBLIC_BASE_URL=https://abcd1234.ngrok-free.app
+```
 
 ---
 
-## 🔗 API Endpoints
+## Demo Flow (Hackathon)
+1. Start a tab at `/tabs`.
+   - Click “Connect MetaMask” to set the owner’s address.
+   - Pick symbol and settlement chain; Create & show QR.
+2. Everyone scans QR and clicks “Join with MetaMask”.
+3. Buy something with MetaMask on Sepolia.
+   - The app auto-detects the outgoing tx and logs the purchase.
+   - Balances update instantly.
+4. Click “Settle” to generate net pay links (invoices) to the creditors.
 
-| Method | Endpoint           | Description                 |
-| ------ | ------------------ | --------------------------- |
-| POST   | `/invoice`         | Create a new invoice        |
-| GET    | `/invoice/:id`     | Get invoice details         |
-| GET    | `/pay/:id`         | View invoice payment page   |
-| POST   | `/pay/:id/quote`   | Get estimated gas fees      |
-| POST   | `/pay/:id/execute` | Execute payment transaction |
-
----
-
-## 🧪 Demo Workflow
-
-1. **Create an invoice** via API or form.
-2. **Open payment page** (includes QR code).
-3. **Click "Quote"** to see estimated gas.
-4. **Click "Pay Now"** to send transaction.
-5. **View live status updates** on the invoice page.
+Notes
+- Auto purchase tracking currently supports Sepolia ETH.
+- For agent-signed demo purchases and invoice execution, ensure the Shade client CLI is running and `NEXT_PUBLIC_contractId` is set.
 
 ---
 
-## 📜 License
+## API (selected)
+- POST `/invoice` — Create an invoice
+- GET `/pay/:id` — Pay link landing
+- POST `/pay/:id/quote` — Quote
+- POST `/pay/:id/execute` — Execute via Shade Agent
+- Tabs: `/tabs`, `/tab/:id`, `/tab/:id/join`, `/tab/:id/settle`
 
-MIT
+---
 
+## Future
+- Bank/card linking and multi-rail settlement
+- ERC-20, multi-chain routing
+- Persistent storage (DB)
+```
