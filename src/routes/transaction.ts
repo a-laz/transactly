@@ -291,13 +291,18 @@ app.get("/pay/:id", (c) => {
           button{padding:10px 14px;border:0;border-radius:10px;background:var(--primary);color:#fff;cursor:pointer}
           .secondary{background:var(--secondary)}
           pre{ text-align:left; background:#0b1222; padding:10px; overflow:auto; color:var(--text); border:1px solid var(--border); border-radius:10px }
-          .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;z-index:9999}
-          .modal{width:min(640px,90vw);max-height:80vh;background:#0f152a;border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,.3);overflow:hidden;display:flex;flex-direction:column;border:1px solid var(--border)}
-          .modal-header{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
-          .modal-title{font-weight:600}
-          .modal-close{border:0;background:transparent;font-size:20px;cursor:pointer;line-height:1;color:var(--text)}
+          .jsonBox{ margin-top:12px }
+          @media (max-width:640px){ .jsonBox{ display:none } }
+          .modal-backdrop{position:fixed;inset:0;background:rgba(2,6,23,.55);backdrop-filter:blur(6px);display:none;align-items:center;justify-content:center;z-index:9999;padding:16px}
+          .modal{width:min(840px,92vw);max-height:82vh;background:linear-gradient(180deg,#0f152a 0%, #0b1020 100%);border-radius:16px;box-shadow:0 30px 80px rgba(0,0,0,.45);overflow:hidden;display:flex;flex-direction:column;border:1px solid var(--border)}
+          .modal-header{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+          .modal-title{font-weight:700;letter-spacing:.2px}
+          .modal-actions{display:flex;gap:10px;align-items:center}
+          .modal-btn{padding:8px 12px;border-radius:10px;border:1px solid var(--border);background:#172036;color:#e6edf3;cursor:pointer}
+          .modal-btn.primary{background:#243a2e;border-color:#243a2e;color:#c8facc}
+          .modal-close{border:0;background:transparent;font-size:20px;cursor:pointer;line-height:1;color:#9aa4b2}
           .modal-body{padding:0;overflow:auto;background:#0b1020}
-          .modal-body pre{margin:0;padding:16px;color:#e6edf3;background:#0b1020;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px}
+          .modal-body pre{margin:0;padding:18px;color:#e6edf3;background:#0b1020;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px}
         </style>
       </head>
       <body>
@@ -323,7 +328,7 @@ app.get("/pay/:id", (c) => {
           </script>
         ` : `<p>No transaction yet</p>`}
 
-        <pre>${JSON.stringify(inv, null, 2)}</pre>
+        <div class="jsonBox"><pre>${JSON.stringify(inv, null, 2)}</pre></div>
 
         <div id="jsonModal" class="modal-backdrop" role="dialog" aria-modal="true">
           <div class="modal">
@@ -342,7 +347,7 @@ app.get("/pay/:id", (c) => {
           const invoiceId = ${JSON.stringify(id)};
 
           function showModal(title, obj){
-            document.getElementById('modalTitle').textContent = title;
+            document.getElementById('modalTitle').innerHTML = title.replace('•', '<span style="opacity:.7;font-weight:600"> • </span>');
             document.getElementById('modalPre').textContent = JSON.stringify(obj, null, 2);
             document.getElementById('jsonModal').style.display = 'flex';
           }
@@ -388,6 +393,112 @@ app.get("/pay/:id", (c) => {
         </script>
       </body>
     </html>
+  `);
+});
+
+// Short vanity link to the pay page
+app.get('/paylink/:id', (c) => {
+  const id = c.req.param('id');
+  const inv = INVOICES.get(id);
+  const base = process.env.PUBLIC_BASE_URL || 'http://localhost:3000';
+  const payUrl = `${base}/pay/${id}`;
+  const json = JSON.stringify(inv || { error: 'not found' }, null, 2);
+  return c.html(`
+  <!doctype html>
+  <html>
+    <head>
+      <meta charset="utf-8" />
+      <meta name="viewport" content="width=device-width,initial-scale=1" />
+      <title>Transactly • ${id}</title>
+      <script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
+      <style>
+        :root{--bg:#0b1020;--text:#c8facc;--muted:#9aa4b2;--accent:#22c55e;--panel:#0f152a;--border:#1f2937}
+        *{box-sizing:border-box}
+        html,body{height:100%}
+        body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;overflow:hidden}
+        #scene{position:fixed;inset:0}
+        .overlay{position:fixed;inset:0;display:grid;place-items:center;pointer-events:none}
+        .card{width:min(820px,92vw);max-height:80vh;background:rgba(15,21,42,.9);border:1px solid var(--border);border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,.45);padding:16px;pointer-events:auto}
+        .head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+        .title{font-weight:700;color:#e6edf3}
+        .btn{padding:10px 14px;border-radius:10px;border:1px solid var(--border);background:#172036;color:#e6edf3;text-decoration:none}
+        .btn.primary{background:#2a3f2f;border-color:#2a3f2f;color:#c8facc}
+        pre{margin:0;white-space:pre-wrap;word-break:break-word;color:#b7f7bb;background:transparent}
+        .muted{color:var(--muted)}
+      </style>
+    </head>
+    <body>
+      <canvas id="scene"></canvas>
+      <div class="overlay">
+        <div class="card">
+          <div class="head">
+            <div class="title">Invoice ${id}</div>
+            <div style="display:flex;gap:8px">
+              <a class="btn" href="/">Home</a>
+              <a class="btn primary" href="${payUrl}" target="_blank">Open Pay Page</a>
+            </div>
+          </div>
+          <pre id="json"></pre>
+        </div>
+      </div>
+
+      <script>
+        // Three.js Matrix rain shader
+        const canvas = document.getElementById('scene');
+        const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+        const scene = new THREE.Scene();
+        const camera = new THREE.OrthographicCamera(-1,1,1,-1,0,1);
+        const geo = new THREE.PlaneGeometry(2,2);
+        const uniforms = {
+          iTime: { value: 0 },
+          iResolution: { value: new THREE.Vector3() }
+        };
+        const mat = new THREE.ShaderMaterial({
+          uniforms,
+          vertexShader: \`
+            varying vec2 vUv; void main(){ vUv = uv; gl_Position = vec4(position,1.0); }
+          \`,
+          fragmentShader: \`
+            precision highp float; varying vec2 vUv; uniform float iTime; uniform vec3 iResolution;
+            // simple hash
+            float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1,311.7))) * 43758.5453123); }
+            void main(){
+              vec2 uv = vUv; uv.y = 1.0 - uv.y; // top-down
+              uv *= iResolution.xy / max(iResolution.x, iResolution.y);
+              float t = iTime * 0.9;
+              // columns
+              float cols = 80.0;
+              float x = floor(uv.x * cols)/cols;
+              float speed = mix(0.6, 1.6, hash(vec2(x,0.0)));
+              float y = fract(uv.y + t*speed + hash(vec2(x,1.0)));
+              float charOn = step(0.96, fract(y*25.0));
+              float tail = smoothstep(0.0, 0.15, y) * (1.0 - smoothstep(0.8, 1.0, y));
+              vec3 glow = vec3(0.0, 1.0, 0.3) * (tail*1.4 + charOn*0.6);
+              // subtle vignette
+              float vig = smoothstep(1.2, 0.4, length(vUv-0.5));
+              vec3 col = vec3(0.02,0.04,0.06) + glow*vig;
+              gl_FragColor = vec4(col, 1.0);
+            }
+          \`
+        });
+        const quad = new THREE.Mesh(geo, mat); scene.add(quad);
+        function onResize(){
+          const w = window.innerWidth, h = window.innerHeight; renderer.setSize(w, h); uniforms.iResolution.value.set(w,h,1);
+        }
+        window.addEventListener('resize', onResize); onResize();
+        const clock = new THREE.Clock();
+        function loop(){ uniforms.iTime.value += clock.getDelta(); renderer.render(scene, camera); requestAnimationFrame(loop); }
+        loop();
+
+        // JSON typewriter animation
+        const data = ${JSON.stringify(json)};
+        const el = document.getElementById('json');
+        let i = 0; const step = 3; // reveal multiple chars for speed
+        function type(){ i = Math.min(i+step, data.length); el.textContent = data.slice(0,i); if(i < data.length) requestAnimationFrame(type); }
+        type();
+      </script>
+    </body>
+  </html>
   `);
 });
 
@@ -453,31 +564,40 @@ app.get('/', (c) => {
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Transactly</title>
-    <div style="margin-bottom:20px;">
-      <a href="/tabs" style="text-decoration:none">
-        <button class="secondary">Start a Tab</button>
-      </a>
-    </div>
     <style>
       :root{--bg:#0b1020;--card:#0f152a;--text:#e6edf3;--muted:#9aa4b2;--primary:#4f46e5;--secondary:#2b3445;--border:#1f2937}
       *{box-sizing:border-box}
       body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;margin:24px;background:var(--bg);color:var(--text)}
+      h1{font-size:42px;line-height:1.1;margin:0}
+      .hero{ text-align:center; padding:64px 0 24px }
+      .actions{ display:flex; gap:12px; justify-content:center; flex-wrap:wrap; margin-top:16px }
       .card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px;margin:12px 0;box-shadow:0 6px 24px rgba(0,0,0,.25)}
       label{display:block;font-size:12px;color:var(--muted);margin-top:10px}
       input,select{width:100%;padding:12px;border:1px solid var(--border);border-radius:10px;margin-top:6px;background:#0b1222;color:var(--text)}
-      button{padding:10px 14px;border:0;border-radius:10px;background:var(--primary);color:#fff;cursor:pointer}
+      button{padding:12px 18px;border:0;border-radius:12px;background:var(--primary);color:#fff;cursor:pointer;font-size:15px;font-weight:600}
       button.secondary{background:var(--secondary)}
+      button.lg{padding:14px 22px;font-size:16px}
       .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
       .mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
       .muted{color:var(--muted)}
       .pill{display:inline-block;padding:2px 8px;border-radius:999px;background:#0b1222;border:1px solid var(--border);font-size:12px}
-      @media (max-width:640px){.row{grid-template-columns:1fr}}
+      .addr{color:var(--muted)}
+      @media (max-width:640px){.row{grid-template-columns:1fr}; h1{font-size:34px} .hero{padding:48px 0 16px} .addr{display:none}}
     </style>
   </head>
   <body>
-    <h1>Transactly</h1>
+    <div class="hero">
+      <div style="display:flex;gap:10px;align-items:center;justify-content:center;margin-bottom:12px">
+        <div style="width:12px;height:12px;background:#4f46e5;border-radius:3px"></div>
+        <h1>Transactly</h1>
+      </div>
+      <div class="actions">
+        <button id="btnShowCreate" class="lg">Create Invoice</button>
+        <a href="/tabs" style="text-decoration:none"><button class="secondary lg">Start a Tab</button></a>
+      </div>
+    </div>
 
-    <div class="card">
+    <div id="createCard" class="card" style="display:none">
       <h3>Create Invoice</h3>
       <div class="row">
         <div>
@@ -512,7 +632,7 @@ app.get('/', (c) => {
       </div>
     </div>
 
-    <div class="card">
+    <div class="card" style="margin-top:64px">
       <div style="display:flex;justify-content:space-between;align-items:center">
         <h3>Invoices</h3>
         <button class="secondary" id="refresh">Refresh</button>
@@ -523,6 +643,7 @@ app.get('/', (c) => {
     <script>
       const base = ${JSON.stringify(base)};
       const $ = (q)=>document.querySelector(q);
+      function shortAddr(a){ if(!a) return ''; return a.length>22 ? (a.slice(0,10)+'…'+a.slice(-6)) : a; }
 
       async function createInvoice(){
         const res = await fetch(base + '/invoice', {
@@ -534,7 +655,11 @@ app.get('/', (c) => {
         });
         const j = await res.json();
         if(!res.ok){ $('#createMsg').textContent = j.error || 'Failed'; return; }
-        $('#createMsg').innerHTML = 'Created · <a class="mono" href="' + j.payLink + '">' + j.payLink + '</a>';
+        try{
+          const id = (j.payLink || '').split('/').pop();
+          const short = base + '/paylink/' + id;
+          $('#createMsg').innerHTML = 'Created · <a class="mono" href="' + short + '">paylink</a>';
+        }catch(_e){ $('#createMsg').textContent = 'Created'; }
         await loadInvoices();
       }
 
@@ -547,7 +672,7 @@ app.get('/', (c) => {
             <div style="display:flex;justify-content:space-between;align-items:center">
               <div>
                 <div><b>\${inv.id}</b> <span class="pill">\${inv.status}</span></div>
-                <div class="muted">\${inv.amount.value} \${inv.amount.symbol} → \${inv.payTo.chain} · <span class="mono">\${inv.payTo.address}</span></div>
+                <div class="muted">\${inv.amount.value} \${inv.amount.symbol} → \${inv.payTo.chain} · <span class="mono addr">\${shortAddr(inv.payTo.address)}</span></div>
               </div>
               <div>
                 <a href="\${base}/pay/\${inv.id}" target="_blank"><button>Open Pay Link</button></a>
@@ -558,6 +683,11 @@ app.get('/', (c) => {
       }
 
       document.getElementById('create').addEventListener('click', createInvoice);
+      document.getElementById('btnShowCreate').addEventListener('click', () => {
+        const el = document.getElementById('createCard');
+        if (el.style.display === 'none') el.style.display = 'block';
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
       document.getElementById('refresh').addEventListener('click', loadInvoices);
       loadInvoices();
     </script>
