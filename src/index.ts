@@ -13,6 +13,8 @@ import ethAccount from "./routes/ethAccount";
 import agentAccount from "./routes/agentAccount";
 import transaction, { createInvoiceDirect } from "./routes/transaction";
 import makeTabsRouter from "./routes/tabs";
+import crosschain from "./routes/crosschain";
+import enhancedInvoice from "./routes/enhanced-invoice";
 
 const app = new Hono();
 app.route("/", transaction);
@@ -30,6 +32,8 @@ app.route("/", makeTabsRouter(createInvoiceDirect)); // /tabs, /tab/:id
 app.route("/api/eth-account", ethAccount);
 app.route("/api/agent-account", agentAccount);
 app.route("/api/transaction", transaction);
+app.route("/api/crosschain", crosschain);                // Cross-chain payment rails
+app.route("/api/enhanced", enhancedInvoice);             // Enhanced invoices with cross-chain support
 
 // Start the server
 const port = Number(process.env.PORT || "3000");
