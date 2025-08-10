@@ -1,9 +1,9 @@
 import { PaymentRail, QuoteInput } from './PaymentRail';
-import { CryptoRail } from './crypto';
+import { EvmNativeRail, NearNativeRail } from './crypto';
 import { AchRail } from './ach';
 import { CardRail } from './card';
 
-const RAILS: PaymentRail[] = [AchRail, CardRail, CryptoRail];
+const RAILS: PaymentRail[] = [AchRail, CardRail, EvmNativeRail, NearNativeRail];
 
 export function listRails() { return RAILS.map(r => r.kind); }
 

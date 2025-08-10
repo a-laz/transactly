@@ -116,8 +116,8 @@ Notes
 
 This repo now includes a pluggable payment rails layer (not yet wired into the settle flow):
 
-- `src/rails/PaymentRail.ts` — interface and shared types
-- `src/rails/crypto.ts` — wraps current invoice creation as a "crypto" rail
+- `src/rails/PaymentRail.ts` — interface and shared types (now asset-aware)
+- `src/rails/crypto.ts` — split into `evm-native` and `near-native` rails
 - `src/rails/ach.ts` — simulated ACH rail (swap for Stripe/Dwolla later)
 - `src/rails/card.ts` — placeholder for card rail
 - `src/rails/router.ts` — simple selector to choose a rail per transfer
@@ -128,7 +128,7 @@ Example (pseudo-usage):
 import { pickRail } from './src/rails/router';
 
 const input = {
-  amount: { value: '10.00', currency: 'USD' },
+  amount: { value: '10.00', asset: { symbol: 'USD' } },
   from: { id: 'debtor-1' },
   to: { id: 'creditor-1', destination: { evm: '0x...', bankToken: undefined } },
   meta: { preferredSettlement: 'crypto' }
