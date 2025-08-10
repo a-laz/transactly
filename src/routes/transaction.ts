@@ -28,6 +28,31 @@ interface Invoice {
 
 const INVOICES = new Map<string, Invoice>();
 
+export async function createInvoiceDirect(args: {
+  amount: { value: string; symbol: "ETH" | "USDC" | "NEAR" };
+  payTo: { chain: "sepolia" | "near"; address: string };
+  memo?: string;
+}) {
+  const id = Math.random().toString(36).slice(2, 10);
+
+  const inv: Invoice = {
+    id,
+    amount: args.amount,
+    payTo: args.payTo,
+    memo: args.memo,
+    createdAt: Date.now(),
+    status: "open",
+  };
+
+  INVOICES.set(id, inv);
+
+  // optional: push to SSE if your app supports it
+  // pushTo(id, 'invoice', inv);
+
+  const base = process.env.PUBLIC_BASE_URL || "http://localhost:3000";
+  return { id, link: `${base}/pay/${id}` };
+}
+
 const app = new Hono();
 
 async function getGasPriceWei(rpcUrl: string): Promise<bigint> {
@@ -424,6 +449,11 @@ app.get('/', (c) => {
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Cross-Chain Invoice Inbox</title>
+    <div style="margin-bottom:20px;">
+      <a href="/tabs" style="text-decoration:none">
+        <button class="secondary">Start a Tab</button>
+      </a>
+    </div>
     <style>
       body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;margin:24px;}
       .card{border:1px solid #e5e7eb;border-radius:12px;padding:16px;margin:12px 0;box-shadow:0 1px 2px rgba(0,0,0,0.04)}

@@ -11,7 +11,8 @@ if (process.env.NODE_ENV !== "production") {
 // Import routes
 import ethAccount from "./routes/ethAccount";
 import agentAccount from "./routes/agentAccount";
-import transaction from "./routes/transaction";
+import transaction, { createInvoiceDirect } from "./routes/transaction";
+import makeTabsRouter from "./routes/tabs";
 
 const app = new Hono();
 app.route("/", transaction);
@@ -20,6 +21,10 @@ app.use(cors());
 
 // Health check
 app.get("/", (c) => c.json({ message: "App is running" }));
+
+// Mount app routes
+app.route("/", transaction);                             // homepage + invoices
+app.route("/", makeTabsRouter(createInvoiceDirect)); // /tabs, /tab/:id
 
 // Routes
 app.route("/api/eth-account", ethAccount);
