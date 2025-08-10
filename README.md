@@ -79,6 +79,8 @@ ngrok http 3000
 
 ---
 
+<img src="docs/screenshot.png" alt="Demo Screenshot" width="500"/>
+
 ## Demo Flow (Hackathon)
 1. Start a tab at `/tabs`.
    - Click “Connect MetaMask” to set the owner’s address.
