@@ -1,4 +1,4 @@
-## Tabs + Cross-Chain Invoice Inbox
+## Transactly
 
 This app lets you run a real-time group tab with automatic wallet purchase tracking and net settlement via invoices. Built on Shade Agents.
 
