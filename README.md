@@ -15,6 +15,7 @@ This app lets you run a real-time group tab with automatic wallet purchase track
 - Chains: Sepolia ETH (auto-tracking), NEAR (settlement target supported)
 - Frontend: Minimal server-rendered HTML
 
+link: https://ade71522ebd02e532c7c895dc03c174aea0d6d92-3000.dstack-prod7.phala.network/
 ---
 
 ## Setup
