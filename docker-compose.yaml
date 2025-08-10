@@ -7,6 +7,7 @@ services:
       API_CODEHASH: ${API_CODEHASH}
       APP_CODEHASH: ${APP_CODEHASH}
       NEXT_PUBLIC_contractId: ${NEXT_PUBLIC_contractId}
+      PUBLIC_BASE_URL: https://78b39a696ff2.ngrok-free.app
       NEAR_RPC_JSON: ${NEAR_RPC_JSON}
     platform: linux/amd64 # Explicitly set for TDX
     # shade-agent-api-image

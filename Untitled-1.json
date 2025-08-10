@@ -1,0 +1,26 @@
+{
+    "ok": true,
+    "txHash": "0x4f0e02`d12dba8d9684f2fca8932bccd2d957af4aa3e547575220d56cd59c985",
+         "invoice":{
+            "id": "nxt78ss1",
+            "amount": {
+                "value": "0.0001",
+                "symbol": "ETH"
+            },
+            "payTo": {
+                "chain": "sepolia",
+                "address": "0x77Aee26B1e85d98D804d45a8F5897a170a34cc55"
+            },
+            "createdAt": 1754768209444,
+            "status": "paid",
+            "payments": [
+                {
+                    "chain": "sepolia",
+                    "hash": "0x4f0e021d12dba8d9684f2fca8932bccd2d957af4aa3e547575220d56cd59c985",
+                    "from": "0x77Aee26B1e85d98D804d45a8F5897a170a34cc55",
+                    "amount": "0.0001",
+                    "symbol": "ETH"
+                }
+            }
+        }
+}
