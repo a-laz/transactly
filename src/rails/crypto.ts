@@ -13,9 +13,9 @@ export const EvmNativeRail: PaymentRail = {
     };
   },
   async createPayment(input: CreatePaymentInput): Promise<CreatePaymentResult> {
-    const payTo = (input.to.destination.evm || input.to.destination.address)
-      ? { chain: 'sepolia' as const, address: input.to.destination.evm }
-      : { chain: 'sepolia' as const, address: input.to.destination.evm! };
+    const addr = input.to.destination.evm || input.to.destination.address;
+    if (!addr) throw new Error('Missing EVM destination address');
+    const payTo = { chain: 'sepolia' as const, address: addr };
     const inv = await createInvoiceDirect({
       amount: { value: input.amount.value, symbol: 'ETH' as any },
       payTo,

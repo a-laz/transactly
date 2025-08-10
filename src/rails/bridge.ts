@@ -143,10 +143,12 @@ function findBestRoute(from: Asset, to: Asset, amount: string): {
         details: `Bridge ${from.symbol} from ${fromChain} to ${toChain} via ${config.name}`,
       });
       
+      const nextProviderKey = (route[1]?.provider || '') as keyof typeof SWAP_PROVIDERS;
+      const swapFeePercent = nextProviderKey ? SWAP_PROVIDERS[nextProviderKey].feePercent : 0;
       return {
         provider: bridgeProvider[0],
         route,
-        totalFee: parseFloat(amount) * (config.feePercent / 100 + (route.length > 1 ? SWAP_PROVIDERS[route[1].provider!].feePercent / 100 : 0)),
+        totalFee: parseFloat(amount) * (config.feePercent / 100 + (route.length > 1 ? swapFeePercent / 100 : 0)),
         estimatedTime: config.estimatedTime + (route.length > 1 ? 60 : 0),
       };
     }

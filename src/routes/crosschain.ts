@@ -61,7 +61,7 @@ app.post("/execute", async (c) => {
       deadline: body.deadline || Date.now() + 30 * 60 * 1000, // 30 minutes
     };
 
-    const rail = pickRail(input);
+    const rail = pickRail(input as any);
     const result = await rail.createPayment(input);
     
     return c.json({
@@ -80,8 +80,8 @@ app.post("/execute", async (c) => {
 // Get payment status
 app.get("/status/:id", async (c) => {
   try {
-    const id = c.req.param("id");
-    const railType = c.req.query("rail");
+  const id = c.req.param("id");
+  const railType = c.req.query("rail") as any; // accept string query, validate below
     
     if (!railType) {
       return c.json({ error: "Rail type required" }, 400);
@@ -91,7 +91,7 @@ app.get("/status/:id", async (c) => {
     const { listRails } = await import("../rails/router");
     const rails = listRails();
     
-    if (!rails.includes(railType)) {
+    if (!rails.includes(railType as any)) {
       return c.json({ error: "Invalid rail type" }, 400);
     }
     

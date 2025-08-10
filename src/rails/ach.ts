@@ -8,7 +8,7 @@ export const AchRail: PaymentRail = {
     return {
       rail: 'ach',
       total: amount,
-      fee: { value: feeVal, currency: 'USD' },
+      fee: { value: feeVal, asset: { symbol: 'USD' } as any },
       etaSeconds: 24 * 60 * 60, // ~1 day
       details: 'ACH (simulated)',
     };
