@@ -90,6 +90,18 @@ ngrok http 3000
    - Balances update instantly.
 4. Click “Settle” to generate net pay links (invoices) to the creditors.
 
+### NEAR invoices (built-in)
+- From the homepage, set:
+  - Symbol: `NEAR`
+  - Pay To Chain: `near`
+  - Pay To Address: `youraccount.testnet` (or mainnet account)
+- The pay page will show an “Open in MyNearWallet” link and a QR that deep‑links to MyNearWallet with the receiver and amount.
+- After approving in the wallet, you will be redirected back via `/invoice/:id/near-callback`, which marks the invoice as paid for demo purposes.
+
+Notes
+- The callback is a demo shortcut. For production, verify payment on‑chain via a NEAR RPC watcher and only then mark the invoice paid.
+- Testnet wallet: `https://testnet.mynearwallet.com` is used automatically when the receiver ends with `.testnet`.
+
 Notes
 - Auto purchase tracking currently supports Sepolia ETH.
 - For agent-signed demo purchases and invoice execution, ensure the Shade client CLI is running and `NEXT_PUBLIC_contractId` is set.
@@ -139,4 +151,15 @@ const payment = await rail.createPayment({ ...input, idempotencyKey: 'abc123' })
 ```
 
 Wiring this into tab settlement is planned for a future sprint.
+
+---
+
+## Shade Agent (NEAR)
+
+The Shade client CLI (NEAR protocol component) is used for agent‑signed EVM demo payments. Ensure it is running if you demo the “Pay Now (demo)” button for Sepolia ETH.
+
+Example:
+```
+shade-client-cli start --contract-id "$NEXT_PUBLIC_contractId"
+```
 ```

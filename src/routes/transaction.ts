@@ -137,6 +137,18 @@ app.get("/invoice/:id", (c) => {
   return c.json(inv);
 });
 
+// Callback endpoint for NEAR wallet to notify return (simple polling mark)
+app.get('/invoice/:id/near-callback', (c) => {
+  const id = c.req.param('id');
+  const inv = INVOICES.get(id);
+  if (!inv) return c.text('not found', 404);
+  // For demo: mark as paid when returning from wallet. In production, verify on-chain.
+  inv.status = 'paid';
+  pushTo(id, 'invoice', inv);
+  const base = process.env.PUBLIC_BASE_URL || 'http://localhost:3000';
+  return c.redirect(`${base}/pay/${id}`, 302);
+});
+
 // ------------------------------
 // Quote route (very simple): given a payer chain/asset, show what to send
 // For MVP: if payer is Sepolia ETH and invoice is Sepolia ETH, 1:1 + gas estimate
@@ -277,6 +289,14 @@ app.get("/pay/:id", (c) => {
   const txUrl = inv?.payments?.[0]?.hash
     ? `${explorerBase}/tx/${inv.payments[0].hash}`
     : null;
+  const nearWalletLink = inv.payTo.chain === 'near'
+    ? (() => {
+        const isTestnet = /\.testnet$/i.test(inv.payTo.address);
+        const baseW = isTestnet ? 'https://testnet.mynearwallet.com' : 'https://app.mynearwallet.com';
+        const cb = encodeURIComponent(`${base}/invoice/${id}/near-callback`);
+        return `${baseW}/send?receiver=${encodeURIComponent(inv.payTo.address)}&amount=${encodeURIComponent(inv.amount.value)}&callbackUrl=${cb}`;
+      })()
+    : null;
 
   return c.html(`
     <html>
@@ -318,7 +338,13 @@ app.get("/pay/:id", (c) => {
           <button id="btnPay">Pay Now (demo)</button>
         </div>
 
-        ${txUrl ? `
+        ${nearWalletLink ? `
+          <p><a href="${nearWalletLink}" target="_blank">Open in MyNearWallet</a></p>
+          <canvas id="qrnear" width="200" height="200" style="border:1px solid #1f2937;border-radius:8px;margin:auto;display:block"></canvas>
+          <script>
+            QRCode.toCanvas(document.getElementById('qrnear'), "${nearWalletLink}", { width: 200 }, function (error) { if (error) console.error(error); });
+          </script>
+        ` : txUrl ? `
           <p><a href="${txUrl}" target="_blank">Open Pay Link</a></p>
           <canvas id="qr" width="200" height="200" style="border:1px solid #eee;border-radius:8px;margin:auto;display:block"></canvas>
           <script>
@@ -496,9 +522,9 @@ app.get('/paylink/:id', (c) => {
         let i = 0; const step = 3; // reveal multiple chars for speed
         function type(){ i = Math.min(i+step, data.length); el.textContent = data.slice(0,i); if(i < data.length) requestAnimationFrame(type); }
         type();
-      </script>
-    </body>
-  </html>
+        </script>
+      </body>
+    </html>
   `);
 });
 
