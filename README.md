@@ -137,5 +137,3 @@ const rail = pickRail(input);
 const quote = await rail.quote(input);
 const payment = await rail.createPayment({ ...input, idempotencyKey: 'abc123' });
 ```
-
-```
