@@ -30,15 +30,29 @@ Create `.env.development.local` in the project root:
 # Public URL for links/QRs (set to your ngrok URL)
 PUBLIC_BASE_URL=https://<your-ngrok-subdomain>.ngrok-free.app
 
-# Shade Agent contract id (required for agent-signed tx / demo purchase)
-NEXT_PUBLIC_contractId=<your_contract_id>
+# Get this from near-cli-rs 
+NEAR_ACCOUNT_ID=
+NEAR_SEED_PHRASE="" 
 
-# Optional: your RPC
-SEPOLIA_RPC_URL=https://sepolia.infura.io/v3/<your_key>
-# or ETH_RPC_URL=https://sepolia.drpc.org
+# ac-proxy.[NEAR_ACCOUNT_ID] for running locally, ac-sandbox.[NEAR_ACCOUNT_ID] for running on Phala Cloud
+NEXT_PUBLIC_contractId=ac-proxy.NEAR_ACCOUNT_ID
 
-# Optional: auto-watcher polling (ms)
-AUTO_WATCH_INTERVAL_MS=5000
+# Do not change this API codehash, this is the code hash for the shade-agent-api
+API_CODEHASH=a86e3a4300b069c08d629a38d61a3d780f7992eaf36aa505e4527e466553e2e5
+
+
+# FOR PHALA DEPLOYMENTS
+# Everything below will be needed for deployments to Phala Cloud
+
+# Your App's code hash, this will update automatically each time you run shade-agent-cli
+APP_CODEHASH=af0c4432864489eb8c6650a6dc61f03ef831240a4199e602cd4d6bd8f4d7163f
+
+# Your Docker tag docker_username/image_name
+DOCKER_TAG=pivortex/my-app
+
+# Your Phala API key, get from https://cloud.phala.network/dashboard/tokens  
+PHALA_API_KEY=
+
 ```
 
 ---
@@ -49,7 +63,7 @@ AUTO_WATCH_INTERVAL_MS=5000
 ```bash
 # Example (adapt per your setup)
 # Ensure this process can receive signature requests
-shade-client-cli start --contract-id "$NEXT_PUBLIC_contractId"
+shade-client-cli
 ```
 
 2) App server
