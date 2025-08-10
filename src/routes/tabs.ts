@@ -25,6 +25,10 @@ export type Tab = {
 const TABS = new Map<string, Tab>();
 const rid = () => Math.random().toString(36).slice(2, 10);
 const TAB_SEEN_TX = new Map<string, Set<string>>();
+const shortAddr = (a: string, lead = 6, tail = 4) => {
+  if (!a) return '';
+  return a.length > lead + tail + 3 ? a.slice(0, lead) + '…' + a.slice(-tail) : a;
+};
 
 function computeNetBalances(t: Tab): Record<string, number> {
   const net: Record<string, number> = {};
@@ -203,6 +207,7 @@ export default function makeTabsRouter(createInvoice: CreateInvoiceFn) {
           .mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
           button{padding:10px 14px;border:0;border-radius:10px;background:var(--primary);color:#fff;cursor:pointer}
           .secondary{background:var(--secondary)}
+          .centerCard{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:10px;min-height:360px}
           input,select{width:100%;padding:12px;border:1px solid var(--border);border-radius:10px;margin-top:6px;background:#0b1222;color:var(--text)}
           .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
           .muted{color:var(--muted)}
@@ -212,16 +217,16 @@ export default function makeTabsRouter(createInvoice: CreateInvoiceFn) {
       <body>
         <a href="/tabs" style="text-decoration:none"><button class="secondary">Back to Tabs</button></a>
         <h2>${t.name} <span style="color:#6b7280;font-size:14px">(${t.status})</span></h2>
-        <div class="card">
+        <div class="card centerCard">
           <h3>Share this QR to join</h3>
           <p class="mono">${joinUrl}</p>
-          <canvas id="qr" width="220" height="220" style="border:1px solid #eee;border-radius:12px"></canvas>
+          <canvas id="qr" width="220" height="220" style="border:1px solid #1f2937;border-radius:12px"></canvas>
           <script>QRCode.toCanvas(document.getElementById('qr'), "${joinUrl}", { width: 220 });</script>
         </div>
 
-        <div class="card">
+        <div class="card centerCard">
           <h3>Participants</h3>
-          <div>${t.participants.map(p => `• ${p.id} — <span class="mono">${p.address}</span>`).join("<br/>")}</div>
+          <div>${t.participants.map(p => `• ${p.id} — <span class="mono">${shortAddr(p.address)}</span>`).join("<br/>")}</div>
           <div style="margin-top:8px" class="muted">Settlement chain: ${t.settlementChain}</div>
         </div>
 
