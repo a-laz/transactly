@@ -66,13 +66,17 @@ export default function makeTabsRouter(createInvoice: CreateInvoiceFn) {
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <title>Tabs</title>
         <style>
-          body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;margin:24px;}
-          .card{border:1px solid #e5e7eb;border-radius:12px;padding:16px;margin:12px 0;box-shadow:0 1px 2px rgba(0,0,0,0.04)}
-          input,select,textarea{width:100%;padding:10px;border:1px solid #d1d5db;border-radius:8px;margin-top:6px}
-          button{padding:10px 14px;border:0;border-radius:10px;background:#111827;color:#fff;cursor:pointer}
-          .secondary{background:#6b7280}
+          :root{--bg:#0b1020;--card:#0f152a;--text:#e6edf3;--muted:#9aa4b2;--primary:#4f46e5;--secondary:#2b3445;--border:#1f2937}
+          *{box-sizing:border-box}
+          body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;max-width:960px;margin:0 auto;padding:24px;background:var(--bg);color:var(--text)}
+          .card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px;margin:12px 0;box-shadow:0 6px 24px rgba(0,0,0,.25)}
+          input,select,textarea{width:100%;padding:12px;border:1px solid var(--border);border-radius:10px;margin-top:6px;background:#0b1222;color:var(--text)}
+          button{padding:10px 14px;border:0;border-radius:10px;background:var(--primary);color:#fff;cursor:pointer}
+          .secondary{background:var(--secondary)}
           .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-          .muted{color:#6b7280}
+          .muted{color:var(--muted)}
+          a{color:#a5b4fc}
+          @media (max-width:640px){body{padding:16px}.row{grid-template-columns:1fr}}
         </style>
       </head>
       <body>
@@ -192,11 +196,17 @@ export default function makeTabsRouter(createInvoice: CreateInvoiceFn) {
         <title>${t.name}</title>
         <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
         <style>
-          body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;max-width:720px;margin:32px auto}
-          .card{border:1px solid #e5e7eb;border-radius:12px;padding:16px;margin:12px 0}
+          :root{--bg:#0b1020;--card:#0f152a;--text:#e6edf3;--muted:#9aa4b2;--primary:#4f46e5;--secondary:#2b3445;--border:#1f2937}
+          *{box-sizing:border-box}
+          body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;max-width:960px;margin:0 auto;padding:24px;background:var(--bg);color:var(--text)}
+          .card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px;margin:12px 0;box-shadow:0 6px 24px rgba(0,0,0,.25)}
           .mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
-          button{padding:10px 14px;border:0;border-radius:10px;background:#111827;color:#fff;cursor:pointer}
-          .secondary{background:#6b7280}
+          button{padding:10px 14px;border:0;border-radius:10px;background:var(--primary);color:#fff;cursor:pointer}
+          .secondary{background:var(--secondary)}
+          input,select{width:100%;padding:12px;border:1px solid var(--border);border-radius:10px;margin-top:6px;background:#0b1222;color:var(--text)}
+          .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+          .muted{color:var(--muted)}
+          @media (max-width:640px){body{padding:16px}.row{grid-template-columns:1fr}}
         </style>
       </head>
       <body>
@@ -354,9 +364,13 @@ export default function makeTabsRouter(createInvoice: CreateInvoiceFn) {
         <meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
         <title>Join ${t.name}</title>
         <style>
-          body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;max-width:560px;margin:32px auto}
-          input{width:100%;padding:10px;border:1px solid #d1d5db;border-radius:8px;margin-top:6px}
-          button{padding:10px 14px;border:0;border-radius:10px;background:#111827;color:#fff;cursor:pointer;margin-top:10px}
+          :root{--bg:#0b1020;--card:#0f152a;--text:#e6edf3;--muted:#9aa4b2;--primary:#4f46e5;--secondary:#2b3445;--border:#1f2937}
+          *{box-sizing:border-box}
+          body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;max-width:640px;margin:0 auto;padding:24px;background:var(--bg);color:var(--text)}
+          input{width:100%;padding:12px;border:1px solid var(--border);border-radius:10px;margin-top:6px;background:#0b1222;color:var(--text)}
+          button{padding:10px 14px;border:0;border-radius:10px;background:var(--primary);color:#fff;cursor:pointer;margin-top:10px}
+          .secondary{background:var(--secondary)}
+          .muted{color:var(--muted)}
         </style>
       </head>
       <body>

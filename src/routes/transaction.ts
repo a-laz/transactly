@@ -23,7 +23,7 @@ interface Invoice {
   createdAt: number;
   status: "open" | "paid" | "expired";
   // record tx(s) once paid
-  payments?: Array<{ chain: string; hash: string; from: string; amount: string; symbol: string }>;
+  payments?: Array<{ chain: string; hash: string; from: string; amount: string; symbol: string; chainId?: number }>;
 }
 
 const INVOICES = new Map<string, Invoice>();
@@ -108,9 +108,11 @@ app.post("/invoice", async (c) => {
 
     INVOICES.set(id, inv);
 
-    // Keep track of all invoices for history view
-    if (!globalThis.INVOICE_HISTORY) globalThis.INVOICE_HISTORY = [];
-    globalThis.INVOICE_HISTORY.push(inv);
+    // Keep track of all invoices for history view (attach to globalThis with a symbol)
+    const key = Symbol.for('INVOICE_HISTORY');
+    const gAny: any = globalThis as any;
+    if (!gAny[key]) gAny[key] = [];
+    gAny[key].push(inv);
 
     pushTo(id, 'invoice', inv);
 
@@ -283,15 +285,17 @@ app.get("/pay/:id", (c) => {
         <meta name="viewport" content="width=device-width,initial-scale=1" />
         <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
         <style>
-          body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;max-width:560px;margin:40px auto;text-align:center}
-          button{padding:10px 14px;border:0;border-radius:10px;background:#111827;color:#fff;cursor:pointer}
-          .secondary{background:#6b7280}
-          pre{ text-align:left; background:#f4f4f4; padding:10px; overflow:auto }
+          :root{--bg:#0b1020;--card:#0f152a;--text:#e6edf3;--muted:#9aa4b2;--primary:#4f46e5;--secondary:#2b3445;--border:#1f2937}
+          *{box-sizing:border-box}
+          body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;max-width:720px;margin:0 auto;padding:24px;background:var(--bg);color:var(--text);text-align:center}
+          button{padding:10px 14px;border:0;border-radius:10px;background:var(--primary);color:#fff;cursor:pointer}
+          .secondary{background:var(--secondary)}
+          pre{ text-align:left; background:#0b1222; padding:10px; overflow:auto; color:var(--text); border:1px solid var(--border); border-radius:10px }
           .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;z-index:9999}
-          .modal{width:min(640px,90vw);max-height:80vh;background:#fff;border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,.3);overflow:hidden;display:flex;flex-direction:column}
-          .modal-header{padding:12px 16px;border-bottom:1px solid #eee;display:flex;justify-content:space-between;align-items:center}
+          .modal{width:min(640px,90vw);max-height:80vh;background:#0f152a;border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,.3);overflow:hidden;display:flex;flex-direction:column;border:1px solid var(--border)}
+          .modal-header{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
           .modal-title{font-weight:600}
-          .modal-close{border:0;background:transparent;font-size:20px;cursor:pointer;line-height:1}
+          .modal-close{border:0;background:transparent;font-size:20px;cursor:pointer;line-height:1;color:var(--text)}
           .modal-body{padding:0;overflow:auto;background:#0b1020}
           .modal-body pre{margin:0;padding:16px;color:#e6edf3;background:#0b1020;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px}
         </style>
@@ -455,16 +459,19 @@ app.get('/', (c) => {
       </a>
     </div>
     <style>
-      body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;margin:24px;}
-      .card{border:1px solid #e5e7eb;border-radius:12px;padding:16px;margin:12px 0;box-shadow:0 1px 2px rgba(0,0,0,0.04)}
-      label{display:block;font-size:12px;color:#374151;margin-top:10px}
-      input,select{width:100%;padding:10px;border:1px solid #d1d5db;border-radius:8px;margin-top:6px}
-      button{padding:10px 14px;border:0;border-radius:10px;background:#111827;color:#fff;cursor:pointer}
-      button.secondary{background:#6b7280}
+      :root{--bg:#0b1020;--card:#0f152a;--text:#e6edf3;--muted:#9aa4b2;--primary:#4f46e5;--secondary:#2b3445;--border:#1f2937}
+      *{box-sizing:border-box}
+      body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;margin:24px;background:var(--bg);color:var(--text)}
+      .card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px;margin:12px 0;box-shadow:0 6px 24px rgba(0,0,0,.25)}
+      label{display:block;font-size:12px;color:var(--muted);margin-top:10px}
+      input,select{width:100%;padding:12px;border:1px solid var(--border);border-radius:10px;margin-top:6px;background:#0b1222;color:var(--text)}
+      button{padding:10px 14px;border:0;border-radius:10px;background:var(--primary);color:#fff;cursor:pointer}
+      button.secondary{background:var(--secondary)}
       .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
       .mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
-      .muted{color:#6b7280}
-      .pill{display:inline-block;padding:2px 8px;border-radius:999px;background:#f3f4f6;font-size:12px}
+      .muted{color:var(--muted)}
+      .pill{display:inline-block;padding:2px 8px;border-radius:999px;background:#0b1222;border:1px solid var(--border);font-size:12px}
+      @media (max-width:640px){.row{grid-template-columns:1fr}}
     </style>
   </head>
   <body>
