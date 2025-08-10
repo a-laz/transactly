@@ -109,4 +109,34 @@ Notes
 - Bank/card linking and multi-rail settlement
 - ERC-20, multi-chain routing
 - Persistent storage (DB)
+
+---
+
+## Payment Rails (Scaffold)
+
+This repo now includes a pluggable payment rails layer (not yet wired into the settle flow):
+
+- `src/rails/PaymentRail.ts` — interface and shared types
+- `src/rails/crypto.ts` — wraps current invoice creation as a "crypto" rail
+- `src/rails/ach.ts` — simulated ACH rail (swap for Stripe/Dwolla later)
+- `src/rails/card.ts` — placeholder for card rail
+- `src/rails/router.ts` — simple selector to choose a rail per transfer
+
+Example (pseudo-usage):
+
+```ts
+import { pickRail } from './src/rails/router';
+
+const input = {
+  amount: { value: '10.00', currency: 'USD' },
+  from: { id: 'debtor-1' },
+  to: { id: 'creditor-1', destination: { evm: '0x...', bankToken: undefined } },
+  meta: { preferredSettlement: 'crypto' }
+};
+const rail = pickRail(input);
+const quote = await rail.quote(input);
+const payment = await rail.createPayment({ ...input, idempotencyKey: 'abc123' });
+```
+
+Wiring this into tab settlement is planned for a future sprint.
 ```
