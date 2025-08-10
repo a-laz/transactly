@@ -138,5 +138,4 @@ const quote = await rail.quote(input);
 const payment = await rail.createPayment({ ...input, idempotencyKey: 'abc123' });
 ```
 
-Wiring this into tab settlement is planned for a future sprint.
 ```
