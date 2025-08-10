@@ -14,7 +14,7 @@ It lets you:
 
 ## 📸 Screenshot
 
-![Transactly Invoice UI](docs/screenshot.png)
+![Screenshot](https://github.com/a-laz/transactly/blob/master/docs/screenshot.png)
 
 > Example invoice page showing payment address, QR code, and one-click quote & pay actions.
 
@@ -43,6 +43,7 @@ It lets you:
 git clone https://github.com/a-laz/transactly.git
 cd transactly
 npm install
+```
 ````
 
 ---
