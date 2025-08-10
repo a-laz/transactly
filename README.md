@@ -1,4 +1,3 @@
-```markdown
 ## Tabs + Cross-Chain Invoice Inbox
 
 This app lets you run a real-time group tab with automatic wallet purchase tracking and net settlement via invoices. Built on Shade Agents.
@@ -156,10 +155,9 @@ Wiring this into tab settlement is planned for a future sprint.
 
 ## Shade Agent (NEAR)
 
-The Shade client CLI (NEAR protocol component) is used for agent‑signed EVM demo payments. Ensure it is running if you demo the “Pay Now (demo)” button for Sepolia ETH.
+The Shade client CLI (NEAR protocol component) is used for agent‑signed EVM demo payments. Ensure it is running if you demo the "Pay Now (demo)" button for Sepolia ETH.
 
 Example:
 ```
 shade-client-cli start --contract-id "$NEXT_PUBLIC_contractId"
-```
 ```
