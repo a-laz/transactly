@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { findOptimalRoute, pickRail } from "../rails/router";
 import { Asset, Amount, Destination } from "../rails/PaymentRail";
 import { InvoiceRepo, type EnhancedInvoiceRecord } from "../repositories/invoices";
+import { WebhookRepo } from "../repositories/webhooks";
 
 // Enhanced invoice interface
 interface EnhancedInvoice {
@@ -33,6 +34,7 @@ interface EnhancedInvoice {
 // In-memory store (to be replaced by DB when USE_DB=true)
 const ENHANCED_INVOICES = new Map<string, EnhancedInvoice>();
 const USE_DB = process.env.USE_DB === 'true';
+const WEBHOOKS_ENABLED = process.env.WEBHOOKS_ENABLED === 'true';
 
 function toRecord(inv: EnhancedInvoice): EnhancedInvoiceRecord {
   return {
@@ -314,6 +316,22 @@ app.post("/pay/:id/execute", async (c) => {
         symbol: newPayment.symbol,
         chainId: undefined,
         status: newPayment.status,
+      });
+    }
+
+    // Enqueue webhook if configured
+    if (WEBHOOKS_ENABLED && body.callbackUrl) {
+      await WebhookRepo.enqueue({
+        id: `${result.id}`,
+        type: 'invoice.payment.created',
+        targetUrl: body.callbackUrl,
+        payload: {
+          invoiceId: id,
+          paymentId: result.id,
+          rail: result.rail,
+          routeId: result.routeId,
+          status: 'pending',
+        },
       });
     }
 

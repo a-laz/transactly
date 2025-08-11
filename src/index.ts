@@ -20,6 +20,7 @@ import makeTabsRouter from "./routes/tabs";
 import crosschain from "./routes/crosschain";
 import enhancedInvoice from "./routes/enhanced-invoice";
 import apiDocs from "./routes/docs";
+import { startWebhookDispatcher } from "./services/webhook-dispatcher";
 
 const app = new Hono();
 // Configure CORS
@@ -54,3 +55,9 @@ const port = Number(process.env.PORT || "3000");
 console.log(`App is running on port ${port}`);
 
 serve({ fetch: app.fetch, port });
+
+// Start webhook dispatcher if enabled
+if (process.env.WEBHOOKS_ENABLED === 'true') {
+  const secret = process.env.WEBHOOK_SECRET || 'dev_secret';
+  startWebhookDispatcher({ secret, intervalMs: Number(process.env.WEBHOOK_POLL_INTERVAL_MS || '3000') });
+}

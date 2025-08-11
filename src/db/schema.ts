@@ -59,4 +59,31 @@ export const tabItems = sqliteTable("tab_items", {
   ts: integer("ts").notNull(),
 });
 
+// webhooks (outbox + dead-letter queue)
+export const webhooksOutbox = sqliteTable("webhooks_outbox", {
+  id: text("id").primaryKey(),
+  eventId: text("event_id").notNull(),
+  eventType: text("event_type").notNull(),
+  targetUrl: text("target_url").notNull(),
+  payload: text("payload").notNull(), // json string
+  status: text("status").notNull(), // pending | delivering | delivered | failed | dead
+  attempts: integer("attempts").notNull().default(0),
+  nextAttemptAt: integer("next_attempt_at"), // ms epoch
+  lastError: text("last_error"),
+  createdAt: integer("created_at").notNull().default(sql`(strftime('%s','now') * 1000)`),
+  updatedAt: integer("updated_at").notNull().default(sql`(strftime('%s','now') * 1000)`),
+});
+
+export const webhooksDlq = sqliteTable("webhooks_dlq", {
+  id: text("id").primaryKey(),
+  outboxId: text("outbox_id").notNull(),
+  eventId: text("event_id").notNull(),
+  eventType: text("event_type").notNull(),
+  targetUrl: text("target_url").notNull(),
+  payload: text("payload").notNull(),
+  error: text("error"),
+  attempts: integer("attempts").notNull(),
+  createdAt: integer("created_at").notNull().default(sql`(strftime('%s','now') * 1000)`),
+});
+
 
