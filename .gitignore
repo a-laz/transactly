@@ -44,3 +44,7 @@ contract/target
 
 # new releases
 new-release/
+
+epics.csv
+issues.csv
+jira_issues.json

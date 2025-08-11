@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="frontend/public/icon.png" width="96" alt="Transactly logo" />
+</p>
+
 # Transactly Payments API
 Version: 0.1.0
 API Reference is also available in your server:
