@@ -48,3 +48,4 @@ new-release/
 epics.csv
 issues.csv
 jira_issues.json
+data/

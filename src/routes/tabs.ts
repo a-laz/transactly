@@ -4,6 +4,7 @@ import { JsonRpcProvider, formatEther } from "ethers";
 import { requestSignature } from "@neardefi/shade-agent-js";
 import { utils } from "chainsig.js";
 import { Evm } from "../utils/ethereum";
+import { TabsRepo } from "../repositories/tabs";
 const { toRSV, uint8ArrayToHex } = utils.cryptography;
 
 type Money = { value: string; symbol: "ETH" | "USDC" | "NEAR" };
@@ -23,6 +24,7 @@ export type Tab = {
 };
 
 const TABS = new Map<string, Tab>();
+const USE_DB = process.env.USE_DB === 'true';
 const rid = () => Math.random().toString(36).slice(2, 10);
 const TAB_SEEN_TX = new Map<string, Set<string>>();
 const shortAddr = (a: string, lead = 6, tail = 4) => {
@@ -65,13 +67,31 @@ export default function makeTabsRouter(createInvoice: CreateInvoiceFn) {
     return process.env.PUBLIC_BASE_URL || origin;
   }
 
-  // Start background watcher for Sepolia ETH purchases
-  startSepoliaAutoWatcher();
+  // Start background watcher for Sepolia ETH purchases (in-memory mode only for now)
+  if (!USE_DB) startSepoliaAutoWatcher();
+
+  async function getTab(id: string): Promise<Tab | null> {
+    if (USE_DB) {
+      const t = await TabsRepo.getById(id);
+      return t as unknown as Tab | null;
+    }
+    return TABS.get(id) || null;
+  }
+
+  async function listAllTabs(): Promise<Tab[]> {
+    if (USE_DB) {
+      const rows = await TabsRepo.list();
+      const hydrated = await Promise.all(rows.map(r => TabsRepo.getById(r.id)));
+      return hydrated.filter(Boolean) as unknown as Tab[];
+    }
+    return [...TABS.values()];
+  }
 
   // ---------- Tabs home (owner flow) ----------
-  app.get("/tabs", (c) => {
-    const openTabs = [...TABS.values()].filter(t => t.status === "open");
-    const closedTabs = [...TABS.values()].filter(t => t.status !== "open");
+  app.get("/tabs", async (c) => {
+    const tabs = await listAllTabs();
+    const openTabs = tabs.filter(t => t.status === "open");
+    const closedTabs = tabs.filter(t => t.status !== "open");
     return c.html(`
       <html><head>
         <meta charset="utf-8" />
@@ -206,13 +226,26 @@ export default function makeTabsRouter(createInvoice: CreateInvoiceFn) {
       items: [],
       status: "open",
     };
-    TABS.set(tab.id, tab);
+    if (USE_DB) {
+      await TabsRepo.create({
+        id: tab.id,
+        name: tab.name,
+        owner: tab.owner,
+        symbol: tab.symbol,
+        settlementChain: tab.settlementChain,
+        participants: tab.participants,
+        items: [],
+        status: tab.status,
+      } as any);
+    } else {
+      TABS.set(tab.id, tab);
+    }
     return c.json({ id: tab.id, tab });
   });
 
   // ---------- Tab page: QR for participants ----------
-  app.get("/tab/:id", (c) => {
-    const t = TABS.get(c.req.param("id"));
+  app.get("/tab/:id", async (c) => {
+    const t = await getTab(c.req.param("id"));
     if (!t) return c.text("Tab not found", 404);
     const joinUrl = `${resolvePublicBase(c)}/tab/${t.id}/join`;
     return c.html(`
@@ -269,7 +302,6 @@ export default function makeTabsRouter(createInvoice: CreateInvoiceFn) {
           </div>
           <div style="margin-top:8px">
             <button onclick="addCharge()">Add</button>
-            <button class="secondary" style="margin-left:8px" onclick="settle()">Settle (equal split)</button>
           </div>
         </div>
 
@@ -319,6 +351,14 @@ export default function makeTabsRouter(createInvoice: CreateInvoiceFn) {
             return rows || '<div class="muted">No purchases yet</div>';
           })()}
         </div>
+
+        ${t.status === "open" ? `
+        <div class="card">
+          <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap">
+            <button class="secondary" onclick="settle()">Settle (equal split)</button>
+          </div>
+        </div>
+        ` : ''}
 
         <div id="settlement"></div>
 
@@ -451,8 +491,8 @@ export default function makeTabsRouter(createInvoice: CreateInvoiceFn) {
   });
 
   // ---------- Participant join page ----------
-  app.get("/tab/:id/join", (c) => {
-    const t = TABS.get(c.req.param("id"));
+  app.get("/tab/:id/join", async (c) => {
+    const t = await getTab(c.req.param("id"));
     if (!t) return c.text("Tab not found", 404);
     return c.html(`
       <html><head>
@@ -507,30 +547,36 @@ export default function makeTabsRouter(createInvoice: CreateInvoiceFn) {
 
   // ---------- Join API ----------
   app.post("/tab/:id/join", async (c) => {
-    const t = TABS.get(c.req.param("id"));
+    const t = await getTab(c.req.param("id"));
     if (!t) return c.json({ error: "not found" }, 404);
     const body = await c.req.json() as Participant;
     if (!body?.address) return c.json({ error: "address required" }, 400);
     // dedupe by address
     if (!t.participants.find(p => p.address.toLowerCase() === body.address.toLowerCase())) {
-      t.participants.push({ id: body.id || `user-${t.participants.length+1}`, address: body.address });
+      const newP = { id: body.id || `user-${t.participants.length+1}`, address: body.address };
+      t.participants.push(newP);
+      if (USE_DB) {
+        await TabsRepo.addParticipant(t.id, newP);
+      }
     }
     return c.json({ ok: true, participants: t.participants });
   });
 
   // (charge/settle APIs you already have can remain)
   app.post("/tab/:id/charge", async (c) => {
-    const t = TABS.get(c.req.param("id"));
+    const t = await getTab(c.req.param("id"));
     if (!t) return c.json({ error: "not found" }, 404);
     const { by, amount, memo } = await c.req.json() as { by: string; amount: Money; memo?: string };
-    t.items.push({ id: rid(), by, amount: { value: String(amount.value), symbol: t.symbol }, memo, ts: Date.now() });
+    const item = { id: rid(), by, amount: { value: String(amount.value), symbol: t.symbol }, memo, ts: Date.now() };
+    t.items.push(item);
+    if (USE_DB) await TabsRepo.addItem(t.id, item as any);
     return c.json({ ok: true });
   });
 
   // Add purchase by fetching an EVM tx (Sepolia ETH only for now)
   app.post("/tab/:id/purchase/evm", async (c) => {
     try {
-      const t = TABS.get(c.req.param("id"));
+      const t = await getTab(c.req.param("id"));
       if (!t) return c.json({ error: "not found" }, 404);
       if (!(t.settlementChain === "sepolia" && t.symbol === "ETH")) {
         return c.json({ error: "This demo supports Sepolia ETH tabs only" }, 400);
@@ -552,7 +598,9 @@ export default function makeTabsRouter(createInvoice: CreateInvoiceFn) {
       const by = payer ? payer.id : from.slice(0, 6) + "…" + from.slice(-4);
       const valueEth = formatEther(tx.value ?? 0n);
 
-      t.items.push({ id: rid(), by, amount: { value: String(valueEth), symbol: t.symbol }, memo: `tx ${txHash.slice(0,10)}…`, ts: Date.now() });
+      const item = { id: rid(), by, amount: { value: String(valueEth), symbol: t.symbol }, memo: `tx ${txHash.slice(0,10)}…`, ts: Date.now() };
+      t.items.push(item);
+      if (USE_DB) await TabsRepo.addItem(t.id, item as any);
       return c.json({ ok: true, added: { by, valueEth, hash: txHash }, payerMatched: Boolean(payer) });
     } catch (e: any) {
       return c.json({ error: e?.message || String(e) }, 400);
@@ -562,7 +610,7 @@ export default function makeTabsRouter(createInvoice: CreateInvoiceFn) {
   // Execute a Sepolia ETH transaction via agent, then log as a charge
   app.post("/tab/:id/purchase/evm/execute", async (c) => {
     try {
-      const t = TABS.get(c.req.param("id"));
+      const t = await getTab(c.req.param("id"));
       if (!t) return c.json({ error: "not found" }, 404);
       if (!(t.settlementChain === "sepolia" && t.symbol === "ETH")) {
         return c.json({ error: "This demo supports Sepolia ETH tabs only" }, 400);
@@ -632,7 +680,9 @@ export default function makeTabsRouter(createInvoice: CreateInvoiceFn) {
         }
       }
 
-      t.items.push({ id: rid(), by, amount: { value: String(amount), symbol: t.symbol }, memo: `agent tx ${txHash.hash.slice(0,10)}…`, ts: Date.now() });
+      const item = { id: rid(), by, amount: { value: String(amount), symbol: t.symbol }, memo: `agent tx ${txHash.hash.slice(0,10)}…`, ts: Date.now() };
+      t.items.push(item);
+      if (USE_DB) await TabsRepo.addItem(t.id, item as any);
       return c.json({ ok: true, txHash: txHash.hash });
     } catch (e: any) {
       return c.json({ error: e?.message || String(e) }, 400);
@@ -640,7 +690,7 @@ export default function makeTabsRouter(createInvoice: CreateInvoiceFn) {
   });
 
   app.post("/tab/:id/settle", async (c) => {
-    const t = TABS.get(c.req.param("id"));
+    const t = await getTab(c.req.param("id"));
     if (!t) return c.json({ error: "not found" }, 404);
 
     // Compute net balances: positive = owed money (creditor), negative = owes money (debtor)
@@ -688,6 +738,9 @@ export default function makeTabsRouter(createInvoice: CreateInvoiceFn) {
 
     t.status = "settled";
     t.settlement = { invoiceIds, links, pairs };
+    if (USE_DB) {
+      await TabsRepo.updateSettlement(t.id, { invoiceIds, links, pairs });
+    }
     return c.json({ ok: true, links, invoiceIds, pairs });
   });
 

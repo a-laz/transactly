@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { findOptimalRoute, pickRail } from "../rails/router";
 import { Asset, Amount, Destination } from "../rails/PaymentRail";
+import { InvoiceRepo, type EnhancedInvoiceRecord } from "../repositories/invoices";
 
 // Enhanced invoice interface
 interface EnhancedInvoice {
@@ -12,6 +13,7 @@ interface EnhancedInvoice {
   status: "open" | "paid" | "expired";
   // Enhanced payment tracking
   payments?: Array<{
+    id?: string;
     rail: string;
     routeId?: string;
     chain: string;
@@ -28,8 +30,81 @@ interface EnhancedInvoice {
   optimalRoute?: any;
 }
 
-// In-memory store (replace with DB in production)
+// In-memory store (to be replaced by DB when USE_DB=true)
 const ENHANCED_INVOICES = new Map<string, EnhancedInvoice>();
+const USE_DB = process.env.USE_DB === 'true';
+
+function toRecord(inv: EnhancedInvoice): EnhancedInvoiceRecord {
+  return {
+    id: inv.id,
+    amount: { value: inv.amount.value, asset: { symbol: inv.amount.asset.symbol } },
+    payTo: { chain: inv.payTo?.asset?.chain || inv.amount.asset.chain || 'unknown', address: inv.payTo?.address || '' },
+    memo: inv.memo,
+    createdAt: inv.createdAt,
+    status: inv.status,
+    supportedRails: inv.supportedRails,
+    payments: inv.payments?.map(p => ({
+      rail: p.rail,
+      routeId: p.routeId,
+      chain: p.chain,
+      hash: p.hash,
+      from: p.from,
+      amount: p.amount,
+      symbol: p.symbol,
+      chainId: p.chainId,
+      status: p.status,
+      routeProgress: p.routeProgress,
+    })),
+  };
+}
+
+function fromRecord(r: EnhancedInvoiceRecord): EnhancedInvoice {
+  return {
+    id: r.id,
+    amount: { value: r.amount.value, asset: { symbol: r.amount.asset.symbol } as any },
+    payTo: { address: r.payTo.address },
+    memo: r.memo,
+    createdAt: r.createdAt,
+    status: r.status,
+    supportedRails: r.supportedRails,
+    payments: r.payments?.map(p => ({
+      rail: p.rail,
+      routeId: p.routeId,
+      chain: p.chain,
+      hash: p.hash,
+      from: p.from,
+      amount: p.amount,
+      symbol: p.symbol,
+      chainId: p.chainId,
+      status: p.status,
+      routeProgress: p.routeProgress,
+    })),
+  };
+}
+
+async function saveInvoice(invoice: EnhancedInvoice) {
+  if (USE_DB) {
+    await InvoiceRepo.upsert(toRecord(invoice));
+  } else {
+    ENHANCED_INVOICES.set(invoice.id, invoice);
+  }
+}
+
+async function getInvoice(id: string): Promise<EnhancedInvoice | null> {
+  if (USE_DB) {
+    const r = await InvoiceRepo.getById(id);
+    return r ? fromRecord(r) : null;
+  }
+  return ENHANCED_INVOICES.get(id) || null;
+}
+
+async function listInvoices(): Promise<EnhancedInvoice[]> {
+  if (USE_DB) {
+    const rows = await InvoiceRepo.list();
+    return rows.map(fromRecord);
+  }
+  return Array.from(ENHANCED_INVOICES.values());
+}
 
 function generateInvoiceId(): string {
   return `inv-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -92,7 +167,7 @@ app.post("/invoice", async (c) => {
       invoice.supportedRails = [];
     }
 
-    ENHANCED_INVOICES.set(id, invoice);
+    await saveInvoice(invoice);
 
     const base = process.env.PUBLIC_BASE_URL || "http://localhost:3000";
     return c.json({
@@ -107,9 +182,9 @@ app.post("/invoice", async (c) => {
 });
 
 // Get enhanced invoice
-app.get("/invoice/:id", (c) => {
+app.get("/invoice/:id", async (c) => {
   const id = c.req.param("id");
-  const invoice = ENHANCED_INVOICES.get(id);
+  const invoice = await getInvoice(id);
   if (!invoice) return c.json({ error: "Invoice not found" }, 404);
   return c.json(invoice);
 });
@@ -118,7 +193,7 @@ app.get("/invoice/:id", (c) => {
 app.post("/pay/:id/quote", async (c) => {
   try {
     const id = c.req.param("id");
-    const invoice = ENHANCED_INVOICES.get(id);
+    const invoice = await getInvoice(id);
     if (!invoice) return c.json({ error: "Invoice not found" }, 404);
 
     const body = await c.req.json();
@@ -165,7 +240,7 @@ app.post("/pay/:id/quote", async (c) => {
 app.post("/pay/:id/execute", async (c) => {
   try {
     const id = c.req.param("id");
-    const invoice = ENHANCED_INVOICES.get(id);
+    const invoice = await getInvoice(id);
     if (!invoice) return c.json({ error: "Invoice not found" }, 404);
     
     if (invoice.status !== "open") {
@@ -216,7 +291,8 @@ app.post("/pay/:id/execute", async (c) => {
     
     // Update invoice with payment info
     invoice.payments = invoice.payments || [];
-    invoice.payments.push({
+    const newPayment = {
+      id: result.id,
       rail: result.rail,
       routeId: result.routeId,
       chain: body.from.asset.chain || "unknown",
@@ -224,11 +300,27 @@ app.post("/pay/:id/execute", async (c) => {
       amount: invoice.amount.value,
       symbol: invoice.amount.asset.symbol,
       status: "pending",
-    });
+    } as const;
+    invoice.payments.push(newPayment as any);
+    if (USE_DB) {
+      await InvoiceRepo.addPayment(id, {
+        id: newPayment.id,
+        rail: newPayment.rail,
+        routeId: newPayment.routeId,
+        chain: newPayment.chain,
+        hash: undefined,
+        from: newPayment.from,
+        amount: newPayment.amount,
+        symbol: newPayment.symbol,
+        chainId: undefined,
+        status: newPayment.status,
+      });
+    }
 
     // If it's a simple same-chain payment, mark as paid
     if (result.rail === 'evm-native' || result.rail === 'near-native') {
       invoice.status = "paid";
+      if (USE_DB) await InvoiceRepo.updateStatus(id, "paid");
     }
 
     return c.json({
@@ -250,7 +342,7 @@ app.post("/pay/:id/execute", async (c) => {
 app.get("/pay/:id/status", async (c) => {
   try {
     const id = c.req.param("id");
-    const invoice = ENHANCED_INVOICES.get(id);
+    const invoice = await getInvoice(id);
     if (!invoice) return c.json({ error: "Invoice not found" }, 404);
 
     if (!invoice.payments || invoice.payments.length === 0) {
@@ -282,6 +374,14 @@ app.get("/pay/:id/status", async (c) => {
     // Update invoice status if payment succeeded
     if (status.status === "succeeded" && invoice.status !== "paid") {
       invoice.status = "paid";
+      if (USE_DB) await InvoiceRepo.updateStatus(id, "paid");
+    }
+
+    if (USE_DB && latestPayment.id) {
+      await InvoiceRepo.updatePayment(latestPayment.id, {
+        status: latestPayment.status as any,
+        routeProgress: latestPayment.routeProgress,
+      });
     }
 
     return c.json({
@@ -297,8 +397,8 @@ app.get("/pay/:id/status", async (c) => {
 });
 
 // List all invoices
-app.get("/invoices", (c) => {
-  const invoices = Array.from(ENHANCED_INVOICES.values());
+app.get("/invoices", async (c) => {
+  const invoices = await listInvoices();
   return c.json({ invoices });
 });
 

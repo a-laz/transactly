@@ -8,6 +8,9 @@
     "build": "tsc",
     "start": "node dist/index.js",
     "generate:readme": "tsx scripts/generate-readme.ts",
+    "drizzle:generate": "drizzle-kit generate",
+    "drizzle:push": "drizzle-kit push",
+    "drizzle:studio": "drizzle-kit studio",
     "docker:build": "sudo docker build --platform linux/amd64 -t pivortex/my-app:latest .",
     "docker:build:no-cache": "sudo docker build --no-cache --platform linux/amd64 -t pivortex/my-app:latest .",
     "docker:push": "sudo docker push pivortex/my-app",
@@ -17,14 +20,17 @@
   "dependencies": {
     "@hono/node-server": "^1.15.0",
     "@neardefi/shade-agent-js": "^1.0.0",
+    "better-sqlite3": "^12.2.0",
     "chainsig.js": "^1.1.9",
     "cors": "^2.8.5",
     "dotenv": "^16.5.0",
+    "drizzle-orm": "^0.44.4",
     "ethers": "^6.11.1",
     "hono": "^4.8.4"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
+    "drizzle-kit": "^0.31.4",
     "js-yaml": "^4.1.0",
     "tsx": "^4.0.0",
     "typescript": "^5.0.0"
