@@ -1,25 +1,31 @@
 import crypto from 'crypto';
 
-export type SignatureHeader = {
-  signature: string;         // hex hmac
-  timestamp: string;         // ms epoch as string
-  algorithm: 'sha256';
-};
-
-export function signPayload(secret: string, body: string, timestampMs?: number): SignatureHeader {
+export function createSignature(secret: string, body: string, timestampMs?: number): { signature: string; timestamp: string } {
   const ts = String(timestampMs ?? Date.now());
   const toSign = `${ts}.${body}`;
-  const h = crypto.createHmac('sha256', secret).update(toSign).digest('hex');
-  return { signature: h, timestamp: ts, algorithm: 'sha256' };
+  const signature = crypto.createHmac('sha256', secret).update(toSign).digest('hex');
+  return { signature, timestamp: ts };
 }
 
-export function verifySignature(secret: string, body: string, header: SignatureHeader, toleranceMs = 5 * 60 * 1000): boolean {
-  if (header.algorithm !== 'sha256') return false;
-  const ts = Number(header.timestamp);
+export function verifySignature(
+  secret: string,
+  body: string,
+  signature: string,
+  timestamp: string,
+  toleranceMs = 5 * 60 * 1000
+): boolean {
+  const ts = Number(timestamp);
   if (!Number.isFinite(ts)) return false;
   if (Math.abs(Date.now() - ts) > toleranceMs) return false;
-  const expected = signPayload(secret, body, ts);
-  return crypto.timingSafeEqual(Buffer.from(expected.signature, 'hex'), Buffer.from(header.signature, 'hex'));
+  const expected = createSignature(secret, body, ts);
+  try {
+    return crypto.timingSafeEqual(Buffer.from(expected.signature, 'hex'), Buffer.from(signature, 'hex'));
+  } catch {
+    return false;
+  }
 }
+
+// Backward-compatible names (if imported elsewhere)
+export const signPayload = createSignature;
 
 

@@ -1,5 +1,5 @@
 import { WebhookRepo } from "../repositories/webhooks";
-import { signPayload } from "../utils/webhook-signature";
+import { createSignature } from "../utils/webhook-signature";
 
 type DispatcherOpts = {
   secret: string;
@@ -17,14 +17,13 @@ export function startWebhookDispatcher(opts: DispatcherOpts) {
         try {
           await WebhookRepo.markDelivering(row.id);
           const body = row.payload;
-          const header = signPayload(opts.secret, body);
+          const header = createSignature(opts.secret, body);
           const res = await fetch(row.targetUrl, {
             method: 'POST',
             headers: {
               'content-type': 'application/json',
-              'x-webhook-signature': header.signature,
-              'x-webhook-timestamp': header.timestamp,
-              'x-webhook-alg': header.algorithm,
+              'x-signature': header.signature,
+              'x-timestamp': header.timestamp,
               'x-webhook-event': row.eventType,
               'x-webhook-id': row.eventId,
             },

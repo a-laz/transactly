@@ -2,18 +2,16 @@
 
 ## Signing (HMAC SHA-256)
 - Each delivery includes headers:
-  - `x-webhook-signature`: hex HMAC of `${timestamp}.${body}`
-  - `x-webhook-timestamp`: ms epoch
-  - `x-webhook-alg`: `sha256`
+  - `x-signature`: hex HMAC of `${timestamp}.${body}` with shared secret
+  - `x-timestamp`: ms epoch
   - `x-webhook-event`: event type (e.g., `invoice.payment.created`)
   - `x-webhook-id`: event id
 - Verification (pseudo):
 ```ts
 const body = await req.text();
-const sig = req.header('x-webhook-signature');
-const ts = req.header('x-webhook-timestamp');
-const alg = req.header('x-webhook-alg');
-const ok = verifySignature(WEBHOOK_SECRET, body, { signature: sig, timestamp: ts, algorithm: alg as any });
+const sig = req.header('x-signature');
+const ts = req.header('x-timestamp');
+const ok = verifySignature(process.env.WEBHOOK_SECRET!, body, sig, ts);
 ```
 
 ## Retry Policy

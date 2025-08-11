@@ -21,6 +21,7 @@ import crosschain from "./routes/crosschain";
 import enhancedInvoice from "./routes/enhanced-invoice";
 import apiDocs from "./routes/docs";
 import { startWebhookDispatcher } from "./services/webhook-dispatcher";
+import webhooksAdmin from "./routes/webhooksAdmin";
 
 const app = new Hono();
 // Configure CORS
@@ -48,6 +49,8 @@ app.route("/api/transaction", transaction);
 app.route("/api/crosschain", crosschain);                // Cross-chain payment rails
 app.route("/api/enhanced", enhancedInvoice);             // Enhanced invoices with cross-chain support
 app.route("/api", apiDocs);                               // /api/openapi.yaml, /api/docs
+app.route("/api/webhooks", webhooksAdmin);               // /api/webhooks/* + /webhooks-admin UI
+app.route("/", webhooksAdmin);                           // mount UI at /webhooks-admin
 
 // Start the server
 const port = Number(process.env.PORT || "3000");
