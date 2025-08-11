@@ -70,7 +70,8 @@ export default function makeTabsRouter(createInvoice: CreateInvoiceFn) {
 
   // ---------- Tabs home (owner flow) ----------
   app.get("/tabs", (c) => {
-    const list = [...TABS.values()].filter(t => t.status === "open");
+    const openTabs = [...TABS.values()].filter(t => t.status === "open");
+    const closedTabs = [...TABS.values()].filter(t => t.status !== "open");
     return c.html(`
       <html><head>
         <meta charset="utf-8" />
@@ -112,7 +113,7 @@ export default function makeTabsRouter(createInvoice: CreateInvoiceFn) {
         </div>
 
         <h3>Open Tabs</h3>
-        ${list.map(t => `
+        ${openTabs.map(t => `
           <div class="card">
             <b>${t.name}</b> · ${t.symbol} · participants: ${t.participants.length}
             <div style="margin-top:8px">
@@ -120,6 +121,19 @@ export default function makeTabsRouter(createInvoice: CreateInvoiceFn) {
             </div>
           </div>
         `).join('')}
+
+        ${closedTabs.length ? `
+        <h3 style="margin-top:16px">Closed Tabs</h3>
+        ${closedTabs.map(t => `
+          <div class="card">
+            <b>${t.name}</b> · ${t.symbol} · participants: ${t.participants.length}
+            <div class="muted" style="margin-top:6px">${t.status}</div>
+            <div style="margin-top:8px">
+              <a href="/tab/${t.id}" style="text-decoration:none"><button>Open</button></a>
+            </div>
+          </div>
+        `).join('')}
+        ` : ''}
 
         <script>
           async function linkWallet(){
