@@ -19,7 +19,7 @@ export type Tab = {
   participants: Participant[];     // includes owner
   items: Charge[];
   status: "open" | "settled";
-  settlement?: { invoiceIds: string[]; links: string[] };
+  settlement?: { invoiceIds: string[]; links: string[]; pairs?: Array<{ debtor: string; creditor: string; link: string }> };
 };
 
 const TABS = new Map<string, Tab>();
@@ -57,6 +57,13 @@ export type CreateInvoiceFn = (args: {
 
 export default function makeTabsRouter(createInvoice: CreateInvoiceFn) {
   const app = new Hono();
+
+  function resolvePublicBase(c: any): string {
+    const xfProto = c.req.header('x-forwarded-proto');
+    const xfHost = c.req.header('x-forwarded-host') || c.req.header('host');
+    const origin = (xfProto && xfHost) ? `${xfProto}://${xfHost}` : new URL(c.req.url).origin;
+    return process.env.PUBLIC_BASE_URL || origin;
+  }
 
   // Start background watcher for Sepolia ETH purchases
   startSepoliaAutoWatcher();
@@ -193,7 +200,7 @@ export default function makeTabsRouter(createInvoice: CreateInvoiceFn) {
   app.get("/tab/:id", (c) => {
     const t = TABS.get(c.req.param("id"));
     if (!t) return c.text("Tab not found", 404);
-    const joinUrl = `${process.env.PUBLIC_BASE_URL || "http://localhost:3000"}/tab/${t.id}/join`;
+    const joinUrl = `${resolvePublicBase(c)}/tab/${t.id}/join`;
     return c.html(`
       <html><head>
         <meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
@@ -342,7 +349,76 @@ export default function makeTabsRouter(createInvoice: CreateInvoiceFn) {
             const r = await fetch('/tab/${t.id}/settle', { method:'POST' });
             const j = await r.json();
             if(!r.ok) return alert(j.error||'Failed');
-            document.getElementById('settlement').innerHTML = '<div class="card"><h3>Pay Links</h3>'+ j.links.map(l => '<div><a target="_blank" href="'+l+'">'+l+'</a></div>').join('') + '</div>';
+            const cont = document.getElementById('settlement');
+            if(!cont) return;
+            cont.innerHTML = '';
+            const card = document.createElement('div');
+            card.className = 'card';
+            const h = document.createElement('h3');
+            h.textContent = 'Pay Links';
+            card.appendChild(h);
+            const list = document.createElement('div');
+            const pairs = Array.isArray(j.pairs) ? j.pairs : null;
+            if (pairs && pairs.length){
+              pairs.forEach(function(p){
+                const row = document.createElement('div');
+                row.style.display = 'flex';
+                row.style.gap = '8px';
+                row.style.alignItems = 'center';
+                row.style.flexWrap = 'wrap';
+                row.style.margin = '6px 0';
+                const lbl = document.createElement('div');
+                lbl.className = 'muted';
+                lbl.textContent = (p.debtor || 'payer') + ' → ' + (p.creditor || 'receiver');
+                const openLink = document.createElement('a');
+                openLink.target = '_blank';
+                openLink.href = p.link;
+                const openBtn = document.createElement('button');
+                openBtn.textContent = 'Open';
+                openLink.appendChild(openBtn);
+                const copyBtn = document.createElement('button');
+                copyBtn.className = 'secondary';
+                copyBtn.textContent = 'Copy';
+                copyBtn.onclick = async function(){ try{ if(navigator.clipboard){ await navigator.clipboard.writeText(p.link); alert('Copied'); } }catch(_){} };
+                const shareBtn = document.createElement('button');
+                shareBtn.className = 'secondary';
+                shareBtn.textContent = 'Share';
+                shareBtn.onclick = function(){
+                  try {
+                    var n = navigator;
+                    if (n && typeof n.share === 'function') {
+                      // Use Web Share API when available
+                      n.share({ title: 'Pay Link', url: p.link });
+                    } else {
+                      // Fallback to opening in a new tab
+                      window.open(p.link, '_blank');
+                    }
+                  } catch (_) {}
+                };
+                row.appendChild(lbl);
+                row.appendChild(openLink);
+                row.appendChild(copyBtn);
+                row.appendChild(shareBtn);
+                list.appendChild(row);
+              });
+            } else if (Array.isArray(j.links)) {
+              j.links.forEach(function(l){
+                const item = document.createElement('div');
+                const a = document.createElement('a');
+                a.target = '_blank';
+                a.href = l;
+                a.textContent = l;
+                item.appendChild(a);
+                list.appendChild(item);
+              });
+            } else {
+              const m = document.createElement('div');
+              m.className = 'muted';
+              m.textContent = 'No links';
+              list.appendChild(m);
+            }
+            card.appendChild(list);
+            cont.appendChild(card);
           }
           async function demoBuy(){
             const by = document.getElementById('demoBy').value.trim();
@@ -487,11 +563,60 @@ export default function makeTabsRouter(createInvoice: CreateInvoiceFn) {
       const { parseEther } = await import("ethers");
       const wei = parseEther(String(amount)).toString();
 
+      // derive sender first
       const { address: from } = await Evm.deriveAddressAndPublicKey(contractId, path);
-      const txBuild = await Evm.prepareTransactionForSigning({ from, to, value: wei });
-      const sig = await requestSignature({ path, payload: uint8ArrayToHex(txBuild.hashesToSign[0]) });
-      const signedTx = Evm.finalizeTransactionSigning({ transaction: txBuild.transaction, rsvSignatures: [toRSV(sig)] });
-      const txHash = await Evm.broadcastTx(signedTx);
+
+      // dynamic fee + pending nonce helpers
+      const rpcUrl = process.env.SEPOLIA_RPC_URL ?? process.env.ETH_RPC_URL ?? "https://sepolia.drpc.org";
+      async function getPendingNonce(addr: string) {
+        const res = await fetch(rpcUrl, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "eth_getTransactionCount", params: [addr, "pending"] }),
+        });
+        const j = await res.json();
+        return Number(BigInt(j.result));
+      }
+      async function get1559Fees() {
+        const blk = await fetch(rpcUrl, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ jsonrpc: "2.0", id: 2, method: "eth_getBlockByNumber", params: ["latest", false] }) }).then(r => r.json());
+        const baseFee = BigInt(blk.result.baseFeePerGas);
+        const pri = await fetch(rpcUrl, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ jsonrpc: "2.0", id: 3, method: "eth_maxPriorityFeePerGas", params: [] }) }).then(r => r.json());
+        const minPriority = 2n * 10n ** 9n;
+        const priority = pri.result ? BigInt(pri.result) : minPriority;
+        const maxPriorityFeePerGas = priority > minPriority ? priority : minPriority;
+        const maxFeePerGas = baseFee * 2n + maxPriorityFeePerGas;
+        return { maxFeePerGas: maxFeePerGas.toString(), maxPriorityFeePerGas: maxPriorityFeePerGas.toString() };
+      }
+
+      const nonce = await getPendingNonce(from);
+      const fees = await get1559Fees();
+
+      // prepare, sign, broadcast with retry bump
+      const buildAndSend = async (feeMul: bigint = 100n) => {
+        const adj = (x: string) => ((BigInt(x) * feeMul) / 100n).toString();
+        const txBuild = await Evm.prepareTransactionForSigning({
+          from,
+          to,
+          value: wei,
+          nonce,
+          maxFeePerGas: adj(fees.maxFeePerGas),
+          maxPriorityFeePerGas: adj(fees.maxPriorityFeePerGas),
+        });
+        const sig = await requestSignature({ path, payload: uint8ArrayToHex(txBuild.hashesToSign[0]) });
+        const signed = Evm.finalizeTransactionSigning({ transaction: txBuild.transaction, rsvSignatures: [toRSV(sig)] });
+        return Evm.broadcastTx(signed);
+      };
+
+      let txHash;
+      try {
+        txHash = await buildAndSend(100n);
+      } catch (e: any) {
+        if ((e?.message || '').includes('replacement transaction underpriced')) {
+          txHash = await buildAndSend(115n); // bump ~15%
+        } else {
+          throw e;
+        }
+      }
 
       t.items.push({ id: rid(), by, amount: { value: String(amount), symbol: t.symbol }, memo: `agent tx ${txHash.hash.slice(0,10)}…`, ts: Date.now() });
       return c.json({ ok: true, txHash: txHash.hash });
@@ -521,6 +646,7 @@ export default function makeTabsRouter(createInvoice: CreateInvoiceFn) {
 
     const invoiceIds: string[] = [];
     const links: string[] = [];
+    const pairs: Array<{ debtor: string; creditor: string; link: string }> = [];
 
     let i = 0, j = 0;
     while (i < debtors.length && j < creditors.length) {
@@ -538,6 +664,7 @@ export default function makeTabsRouter(createInvoice: CreateInvoiceFn) {
         memo: `Tab: ${t.name} — ${debtor.id} → ${creditor.id}`,
       });
       invoiceIds.push(inv.id); links.push(inv.link);
+      pairs.push({ debtor: debtor.id, creditor: creditor.id, link: inv.link });
 
       d.amount -= amount;
       cr.amount -= amount;
@@ -546,8 +673,8 @@ export default function makeTabsRouter(createInvoice: CreateInvoiceFn) {
     }
 
     t.status = "settled";
-    t.settlement = { invoiceIds, links };
-    return c.json({ ok: true, links, invoiceIds });
+    t.settlement = { invoiceIds, links, pairs };
+    return c.json({ ok: true, links, invoiceIds, pairs });
   });
 
   return app;
