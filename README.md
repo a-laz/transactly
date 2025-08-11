@@ -12,6 +12,7 @@ API Reference is also available in your server:
 - drizzle:generate: drizzle-kit generate
 - drizzle:push: drizzle-kit push
 - drizzle:studio: drizzle-kit studio
+- seed:dev: tsx scripts/seed-dev.ts
 - docker:build: sudo docker build --platform linux/amd64 -t pivortex/my-app:latest .
 - docker:build:no-cache: sudo docker build --no-cache --platform linux/amd64 -t pivortex/my-app:latest .
 - docker:push: sudo docker push pivortex/my-app
