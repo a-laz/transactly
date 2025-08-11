@@ -1,0 +1,104 @@
+openapi: 3.0.3
+info:
+  title: Transactly Payments API
+  version: 0.1.0
+servers:
+  - url: /api
+paths:
+  /eth-account:
+    get:
+      summary: Get derived EVM sender and balance
+      security:
+        - ApiKeyAuth: []
+      responses:
+        '200':
+          description: OK
+  /agent-account:
+    get:
+      summary: Get agent account metadata and balance
+      security:
+        - ApiKeyAuth: []
+      responses:
+        '200':
+          description: OK
+  /enhanced/invoice:
+    post:
+      summary: Create enhanced invoice
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - in: header
+          name: Idempotency-Key
+          required: false
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                amount:
+                  type: object
+                  properties:
+                    value:
+                      type: string
+                    asset:
+                      type: object
+                      properties:
+                        symbol:
+                          type: string
+                        chain:
+                          type: string
+                  required: [value, asset]
+                payTo:
+                  type: object
+                  properties:
+                    asset:
+                      type: object
+                    address:
+                      type: string
+                  required: [asset, address]
+                memo:
+                  type: string
+      responses:
+        '200':
+          description: OK
+  /crosschain/quote:
+    post:
+      summary: Get cross-chain quote
+      security:
+        - ApiKeyAuth: []
+      responses:
+        '200':
+          description: OK
+  /crosschain/execute:
+    post:
+      summary: Execute cross-chain route
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - in: header
+          name: Idempotency-Key
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+  /crosschain/routes:
+    get:
+      summary: List supported rails/routes
+      security:
+        - ApiKeyAuth: []
+      responses:
+        '200':
+          description: OK
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: x-api-key
+

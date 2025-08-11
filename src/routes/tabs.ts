@@ -760,3 +760,4 @@ function startSepoliaAutoWatcher() {
   const intervalMs = Number(process.env.AUTO_WATCH_INTERVAL_MS || '5000');
   setInterval(() => { scanSepoliaOnce(); }, intervalMs);
 }
+

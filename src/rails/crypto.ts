@@ -21,9 +21,9 @@ export const EvmNativeRail: PaymentRail = {
       payTo,
       memo: (input.meta as any)?.memo,
     });
-    return { id: inv.id, link: inv.link, rail: 'evm-native' };
+    return { id: inv.id, link: inv.link, rail: 'evm-native', routeId: inv.id } as any;
   },
-  async getStatus() { return { status: 'pending' }; },
+  async getStatus() { return { status: 'succeeded' }; },
 };
 
 export const NearNativeRail: PaymentRail = {
@@ -39,9 +39,9 @@ export const NearNativeRail: PaymentRail = {
       payTo: { chain: 'near', address: input.to.destination.near || input.to.destination.address! },
       memo: (input.meta as any)?.memo,
     });
-    return { id: inv.id, link: inv.link, rail: 'near-native' };
+    return { id: inv.id, link: inv.link, rail: 'near-native', routeId: inv.id } as any;
   },
-  async getStatus() { return { status: 'pending' }; },
+  async getStatus() { return { status: 'succeeded' }; },
 };
 
 

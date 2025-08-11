@@ -2,6 +2,10 @@ import { Hono } from "hono";
 import { serve } from "@hono/node-server";
 import { cors } from "hono/cors";
 import dotenv from "dotenv";
+import requestLogger from "./middleware/logging";
+import apiKeyAuthMiddleware from "./middleware/auth";
+import createRateLimitMiddleware from "./middleware/rateLimit";
+import createIdempotencyMiddleware from "./middleware/idempotency";
 
 // Load environment variables from .env file (only needed for local development)
 if (process.env.NODE_ENV !== "production") {
@@ -15,18 +19,26 @@ import transaction, { createInvoiceDirect } from "./routes/transaction";
 import makeTabsRouter from "./routes/tabs";
 import crosschain from "./routes/crosschain";
 import enhancedInvoice from "./routes/enhanced-invoice";
+import apiDocs from "./routes/docs";
 
 const app = new Hono();
-app.route("/", transaction);
-// Configure CORS to restrict access to the server
+// Configure CORS
 app.use(cors());
+
+// Global logging
+app.use("/*", requestLogger);
 
 // Health check
 app.get("/", (c) => c.json({ message: "App is running" }));
 
-// Mount app routes
+// Mount public routes
 app.route("/", transaction);                             // homepage + invoices
-app.route("/", makeTabsRouter(createInvoiceDirect)); // /tabs, /tab/:id
+app.route("/", makeTabsRouter(createInvoiceDirect));     // /tabs, /tab/:id
+
+// Secure API routes with auth, rate limit, and idempotency
+app.use("/api/*", apiKeyAuthMiddleware);
+app.use("/api/*", createRateLimitMiddleware({ capacity: 120, refillPerMinute: 120 }));
+app.use("/api/*", createIdempotencyMiddleware());
 
 // Routes
 app.route("/api/eth-account", ethAccount);
@@ -34,6 +46,7 @@ app.route("/api/agent-account", agentAccount);
 app.route("/api/transaction", transaction);
 app.route("/api/crosschain", crosschain);                // Cross-chain payment rails
 app.route("/api/enhanced", enhancedInvoice);             // Enhanced invoices with cross-chain support
+app.route("/api", apiDocs);                               // /api/openapi.yaml, /api/docs
 
 // Start the server
 const port = Number(process.env.PORT || "3000");
