@@ -1,0 +1,4 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+npm run generate:readme
+git diff --quiet README.md || { echo "README changed; commit the update and re-push"; exit 1; }
