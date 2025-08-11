@@ -1,22 +1,40 @@
-# Transactly Payments API
-Version: 0.1.0
+# my-shade-agent-app
+Version: 1.0.0
 API Reference is also available in your server:
 - Redoc: /api/docs
 - Swagger UI: /api/docs-swagger
 - OpenAPI: /api/openapi.yaml
+## Project Scripts
+- dev: tsx src/index.ts
+- build: tsc
+- start: node dist/index.js
+- generate:readme: tsx scripts/generate-readme.ts
+- drizzle:generate: drizzle-kit generate
+- drizzle:push: drizzle-kit push
+- drizzle:studio: drizzle-kit studio
+- docker:build: sudo docker build --platform linux/amd64 -t pivortex/my-app:latest .
+- docker:build:no-cache: sudo docker build --no-cache --platform linux/amd64 -t pivortex/my-app:latest .
+- docker:push: sudo docker push pivortex/my-app
+- docker:prune: sudo docker system prune
+- phala:deploy: phala cvms create --name my-app --vcpu 1 --compose ./docker-compose.yaml --env-file ./.env.development.local
+- prepare: husky
 ## Quickstart
 ```bash
 # 1) Install
 npm install
 # 2) Configure environment (example)
 cat > .env.development.local << EOT
-PORT=3000
-PUBLIC_BASE_URL=http://localhost:3000
-API_KEYS=dev_key_123
-NEXT_PUBLIC_contractId=v1.signer-prod.testnet
-SEPOLIA_RPC_URL=https://sepolia.drpc.org
-# Optional, to avoid NEAR RPC rate limits:
-# NEAR_RPC_URL=https://rpc.testnet.near.org
+API_KEYS=
+AUTO_WATCH_INTERVAL_MS=
+DB_PATH=
+ETH_RPC_URL=
+EVM_CHAIN_ID=
+NEXT_PUBLIC_contractId=
+NODE_ENV=
+PORT=
+PUBLIC_BASE_URL=
+SEPOLIA_RPC_URL=
+USE_DB=
 EOT
 # 3) Run the server
 npm run dev
@@ -24,6 +42,16 @@ npm run dev
 curl -s http://localhost:3000/
 open http://localhost:3000/api/docs
 ```
+## Persistence (SQLite + Drizzle)
+This project uses SQLite with Drizzle ORM.
+
+```bash
+npm run drizzle:generate   # generate SQL from schema
+npm run drizzle:push       # apply migrations
+npm run drizzle:studio     # browse DB
+```
+
+- Toggle DB mode: set `USE_DB=true`
 ## Base URL
 `/api`
 ## Authentication

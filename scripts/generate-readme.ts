@@ -2,10 +2,17 @@ import fs from 'fs';
 import path from 'path';
 import yaml from 'js-yaml';
 
+type PackageJson = { name?: string; version?: string; description?: string; scripts?: Record<string, string> };
+
 function loadSpec(): any {
   const p = path.resolve(process.cwd(), 'docs/openapi.yaml');
   const raw = fs.readFileSync(p, 'utf8');
   return yaml.load(raw) as any;
+}
+
+function loadPkg(): PackageJson {
+  const p = path.resolve(process.cwd(), 'package.json');
+  try { return JSON.parse(fs.readFileSync(p, 'utf8')); } catch { return {}; }
 }
 
 function h2(t: string) { return `## ${t}`; }
@@ -34,20 +41,66 @@ function genSecurity(spec: any): string {
   return 'None';
 }
 
+function listScripts(pkg: PackageJson): string {
+  const scripts = pkg.scripts || {};
+  const keys = Object.keys(scripts);
+  if (keys.length === 0) return 'None';
+  return keys.map((k) => `- ${k}: ${scripts[k]}`).join('\n');
+}
+
+function discoverEnvVars(): string[] {
+  const roots = [path.resolve(process.cwd(), 'src')];
+  const envs = new Set<string>();
+  const ignoreDirs = new Set(['node_modules', 'dist', 'build', '.git']);
+  function walk(dir: string) {
+    let entries: string[] = [];
+    try { entries = fs.readdirSync(dir); } catch { return; }
+    for (const entry of entries) {
+      const full = path.join(dir, entry);
+      let stat: fs.Stats | undefined;
+      try { stat = fs.statSync(full); } catch { continue; }
+      if (!stat) continue;
+      if (stat.isDirectory()) {
+        if (!ignoreDirs.has(entry)) walk(full);
+      } else if (stat.isFile() && /\.(ts|tsx|js|jsx)$/.test(entry)) {
+        let content = '';
+        try { content = fs.readFileSync(full, 'utf8'); } catch { /* ignore */ }
+        const regex = /process\.env\.(\w+)/g;
+        let m: RegExpExecArray | null;
+        while ((m = regex.exec(content))) envs.add(m[1]);
+      }
+    }
+  }
+  roots.forEach(walk);
+  return Array.from(envs).sort();
+}
+
+function hasDrizzle(): boolean {
+  return fs.existsSync(path.resolve(process.cwd(), 'drizzle.config.ts'));
+}
+
 function genReadme(spec: any): string {
-  const title = spec.info?.title || 'API';
-  const version = spec.info?.version || '';
+  const pkg = loadPkg();
+  const title = pkg.name || spec.info?.title || 'API';
+  const version = pkg.version || spec.info?.version || '';
+  const description = pkg.description || '';
   const server = (spec.servers && spec.servers[0]?.url) || '/api';
+  const envVars = discoverEnvVars();
+  const drizzle = hasDrizzle();
 
   return [
     `# ${title}`,
     '',
     version ? `Version: ${version}` : '',
+    description ? `${description}` : '',
     '',
     'API Reference is also available in your server:',
     '- Redoc: /api/docs',
     '- Swagger UI: /api/docs-swagger',
     '- OpenAPI: /api/openapi.yaml',
+    '',
+    h2('Project Scripts'),
+    listScripts(pkg),
     '',
     h2('Quickstart'),
     '```bash',
@@ -56,13 +109,15 @@ function genReadme(spec: any): string {
     '',
     '# 2) Configure environment (example)',
     'cat > .env.development.local << EOT',
-    'PORT=3000',
-    'PUBLIC_BASE_URL=http://localhost:3000',
-    'API_KEYS=dev_key_123',
-    'NEXT_PUBLIC_contractId=v1.signer-prod.testnet',
-    'SEPOLIA_RPC_URL=https://sepolia.drpc.org',
-    '# Optional, to avoid NEAR RPC rate limits:',
-    '# NEAR_RPC_URL=https://rpc.testnet.near.org',
+    ...(
+      envVars.length
+        ? envVars.map((k) => `${k}=`)
+        : [
+            'PORT=3000',
+            'PUBLIC_BASE_URL=http://localhost:3000',
+            'API_KEYS=dev_key_123',
+          ]
+    ),
     'EOT',
     '',
     '# 3) Run the server',
@@ -72,6 +127,19 @@ function genReadme(spec: any): string {
     'curl -s http://localhost:3000/',
     'open http://localhost:3000/api/docs',
     '```',
+    '',
+    drizzle ? h2('Persistence (SQLite + Drizzle)') : '',
+    drizzle ? [
+      'This project uses SQLite with Drizzle ORM.',
+      '',
+      '```bash',
+      'npm run drizzle:generate   # generate SQL from schema',
+      'npm run drizzle:push       # apply migrations',
+      'npm run drizzle:studio     # browse DB',
+      '```',
+      '',
+      '- Toggle DB mode: set `USE_DB=true`',
+    ].join('\n') : '',
     '',
     h2('Base URL'),
     '`' + server + '`',
