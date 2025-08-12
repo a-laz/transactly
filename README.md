@@ -13,6 +13,9 @@ API Reference is also available in your server:
 - drizzle:push: drizzle-kit push
 - drizzle:studio: drizzle-kit studio
 - seed:dev: tsx scripts/seed-dev.ts
+- sdk:generate: openapi-typescript docs/openapi.yaml -o sdk/types.ts
+- postman:generate: openapi2postmanv2 -s docs/openapi.yaml -o postman_collection.json -p
+- example:node: tsx examples/node-sdk.ts
 - docker:build: sudo docker build --platform linux/amd64 -t pivortex/my-app:latest .
 - docker:build:no-cache: sudo docker build --no-cache --platform linux/amd64 -t pivortex/my-app:latest .
 - docker:push: sudo docker push pivortex/my-app
