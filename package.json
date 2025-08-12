@@ -25,6 +25,7 @@
   "dependencies": {
     "@hono/node-server": "^1.15.0",
     "@neardefi/shade-agent-js": "^1.0.0",
+    "@transactly/sdk": "file:sdk",
     "better-sqlite3": "^12.2.0",
     "chainsig.js": "^1.1.9",
     "cors": "^2.8.5",
@@ -35,12 +36,12 @@
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
-    "openapi-to-postmanv2": "^4.20.0",
-    "openapi-typescript": "^7.4.3",
-    "openapi-fetch": "^0.10.6",
     "drizzle-kit": "^0.31.4",
     "husky": "^9.1.7",
     "js-yaml": "^4.1.0",
+    "openapi-fetch": "^0.10.6",
+    "openapi-to-postmanv2": "^4.20.0",
+    "openapi-typescript": "^7.4.3",
     "tsx": "^4.0.0",
     "typescript": "^5.0.0"
   }

@@ -1,0 +1,34 @@
+{
+  "name": "@transactly/sdk",
+  "version": "0.1.0",
+  "description": "Transactly TypeScript SDK generated from OpenAPI",
+  "type": "module",
+  "private": false,
+  "publishConfig": { "access": "restricted" },
+  "main": "dist/index.cjs",
+  "module": "dist/index.js",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "types": "dist/index.d.ts",
+  "files": ["dist/**", "README.md", "LICENSE"],
+  "scripts": {
+    "generate": "openapi-typescript ../docs/openapi.yaml -o src/types.ts",
+    "build": "tsup src/index.ts --format cjs,esm --dts --clean",
+    "prepublishOnly": "npm run generate && npm run build"
+  },
+  "dependencies": {
+    "openapi-fetch": "^0.10.6"
+  },
+  "devDependencies": {
+    "openapi-typescript": "^7.4.3",
+    "tsup": "^8.0.1",
+    "typescript": "^5.6.2"
+  }
+}
+
+
