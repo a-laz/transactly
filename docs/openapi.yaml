@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: Transactly Payments API
-  version: 0.1.0
+  version: 0.2.0
 servers:
   - url: /api
 paths:
@@ -95,6 +95,55 @@ paths:
       responses:
         '200':
           description: OK
+  /webhooks/outbox:
+    get:
+      summary: List webhook outbox
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - in: query
+          name: limit
+          schema: { type: integer }
+        - in: query
+          name: status
+          schema: { type: string, enum: [pending, delivering, delivered, dead] }
+      responses:
+        '200': { description: OK }
+  /webhooks/dlq:
+    get:
+      summary: List webhook DLQ
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - in: query
+          name: limit
+          schema: { type: integer }
+      responses:
+        '200': { description: OK }
+  /webhooks/requeue/{id}:
+    post:
+      summary: Requeue outbox id
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: OK }
+  /webhooks/replay/{dlqId}:
+    post:
+      summary: Replay DLQ id
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - in: path
+          name: dlqId
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: OK }
 components:
   securitySchemes:
     ApiKeyAuth:

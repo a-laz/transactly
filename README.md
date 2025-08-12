@@ -104,3 +104,7 @@ curl -s -H "x-api-key: $KEY" "$BASE/api/enhanced/pay/$INV_ID/status"
 - POST /crosschain/quote — Get cross-chain quote
 - POST /crosschain/execute — Execute cross-chain route
 - GET /crosschain/routes — List supported rails/routes
+- GET /webhooks/outbox — List webhook outbox
+- GET /webhooks/dlq — List webhook DLQ
+- POST /webhooks/requeue/{id} — Requeue outbox id
+- POST /webhooks/replay/{dlqId} — Replay DLQ id
