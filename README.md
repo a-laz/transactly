@@ -28,8 +28,10 @@ API Reference is also available in your server:
 npm install
 # 2) Configure environment (example)
 cat > .env.development.local << EOT
+ADMIN_API_KEY=
 API_KEYS=
 AUTO_WATCH_INTERVAL_MS=
+DB_KEYS_ENABLED=
 DB_PATH=
 ETH_RPC_URL=
 EVM_CHAIN_ID=

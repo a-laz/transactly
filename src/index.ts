@@ -22,6 +22,8 @@ import enhancedInvoice from "./routes/enhanced-invoice";
 import apiDocs from "./routes/docs";
 import { startWebhookDispatcher } from "./services/webhook-dispatcher";
 import webhooksAdmin from "./routes/webhooksAdmin";
+import adminApi from "./routes/admin/index";
+import adminUi from "./routes/admin/ui";
 
 const app = new Hono();
 // Configure CORS
@@ -51,6 +53,8 @@ app.route("/api/enhanced", enhancedInvoice);             // Enhanced invoices wi
 app.route("/api", apiDocs);                               // /api/openapi.yaml, /api/docs
 app.route("/api/webhooks", webhooksAdmin);               // /api/webhooks/* + /webhooks-admin UI
 app.route("/", webhooksAdmin);                           // mount UI at /webhooks-admin
+app.route("/api/admin", adminApi);                       // orgs/projects/keys/quotas
+app.route("/", adminUi);                                 // /admin dashboard
 
 // Start the server
 const port = Number(process.env.PORT || "3000");
