@@ -4,13 +4,19 @@ import { AchRail } from './ach';
 import { CardRail } from './card';
 import { CrossChainRail } from './bridge';
 
-const RAILS: PaymentRail[] = [
-  CrossChainRail,  // Prioritize cross-chain for complex routes
-  EvmNativeRail, 
-  NearNativeRail, 
-  AchRail, 
-  CardRail
-];
+const ENABLE_ACH = process.env.ENABLE_ACH === 'true';
+const ENABLE_CARD = process.env.ENABLE_CARD === 'true';
+
+const RAILS: PaymentRail[] = (() => {
+  const rails: PaymentRail[] = [
+    CrossChainRail,  // Prioritize cross-chain for complex routes
+    EvmNativeRail,
+    NearNativeRail,
+  ];
+  if (ENABLE_ACH) rails.push(AchRail);
+  if (ENABLE_CARD) rails.push(CardRail);
+  return rails;
+})();
 
 export function listRails() { return RAILS.map(r => r.kind); }
 

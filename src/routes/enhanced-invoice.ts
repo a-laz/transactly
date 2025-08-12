@@ -155,6 +155,8 @@ app.post("/invoice", async (c) => {
             'cross-chain': require("../rails/bridge").CrossChainRail,
             'evm-native': require("../rails/crypto").EvmNativeRail,
             'near-native': require("../rails/crypto").NearNativeRail,
+            'ach': require("../rails/ach").AchRail,
+            'card': require("../rails/card").CardRail,
           };
           const rail = railMap[railType];
           return rail && rail.supports(testInput);
@@ -279,6 +281,8 @@ app.post("/pay/:id/execute", async (c) => {
         'cross-chain': (await import("../rails/bridge")).CrossChainRail,
         'evm-native': (await import("../rails/crypto")).EvmNativeRail,
         'near-native': (await import("../rails/crypto")).NearNativeRail,
+        'ach': (await import("../rails/ach")).AchRail,
+        'card': (await import("../rails/card")).CardRail,
       };
       rail = railMap[body.preferredRail];
       if (!rail) {
@@ -374,6 +378,8 @@ app.get("/pay/:id/status", async (c) => {
       'cross-chain': (await import("../rails/bridge")).CrossChainRail,
       'evm-native': (await import("../rails/crypto")).EvmNativeRail,
       'near-native': (await import("../rails/crypto")).NearNativeRail,
+      'ach': (await import("../rails/ach")).AchRail,
+      'card': (await import("../rails/card")).CardRail,
     };
     
     const rail = railMap[latestPayment.rail];
